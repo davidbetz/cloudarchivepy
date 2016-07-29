@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import sys
 import getopt
 import datetime
@@ -26,16 +24,7 @@ def app(argv):
     options['live'] = args.live
     options['full'] = args.full
 
-    # debug.log('args', args)
-    # debug.log('options', options)
     try:
-        '''
-        options['area'] = 'books'
-        options['verbose'] = True
-        options['live'] = False
-        options['full'] = True
-        '''
-
         full = "full" if options['full'] else ''
 
         if (options['verbose']):
@@ -45,8 +34,6 @@ def app(argv):
         sys.exit(2)
 
     index(options)
-
-    #print("Finished. Press enter to exit.")
 
 def run(options):
     config = Config.Load()
@@ -71,11 +58,7 @@ def index(options):
 
     print("Beginning fullscan...")
 
-    #+
     package = file_structure.create(area_config, options['full'])
-
-    # debug.log('package', [_['RelativePath'] for _ in package['assets']])
-    #+
 
     if package is not None and len(package['assets']) > 0:
         if (options['live']):
@@ -100,7 +83,7 @@ def index(options):
                 print("Publish complete ({} ms)".format((later - now).Milliseconds))
                 print("Updating timestamps and hashes...")
 
-            file_structure.finalize(area_config['folder'],  updated_list, package['tracking_data'])
+            file_structure.finalize(area_config['folder'], updated_list, package['tracking_data'])
 
         print("Area complete. Items indexed: {}".format(len(updated_list)))
 

@@ -14,7 +14,6 @@ import config
 import base64
 
 class AzureAssetProvider():
-    # http://blogs.msdn.com/b/windowsazurestorage/archive/2011/02/18/windows-azure-blob-md5-overview.aspx
     def check(self, area, selector, hash):
         if area == None:
             return asset_status_code.error
@@ -22,8 +21,6 @@ class AzureAssetProvider():
         area_config = config.load_area(area)
 
         storage_config = config.load_storage(area_config['storage'])
-
-        #connectionString = "DefaultEndpointsProtocol=https;AccountName={};AccountKey={}".format(storage_config['name'], storage_config['key1'])
 
         area = area.lower()
 
@@ -36,12 +33,6 @@ class AzureAssetProvider():
 
         storedHash = blob.properties.content_settings.content_md5
 
-        # debug.log('selector', selector)
-        # debug.log('storedHash', storedHash)
-        # debug.log('hash', hash)
-
-        # raise ValueError('asdf')
-
         return asset_status_code.same if storedHash == hash else asset_status_code.different
 
 
@@ -53,7 +44,6 @@ class AzureAssetProvider():
         
         storage_config = config.load_storage(area_config['storage'])
         
-        # connectionString = "DefaultEndpointsProtocol=https;AccountName={};AccountKey={}".format(storage_config['name'], storage_config['key1'])
 
         area = area.lower()
 
@@ -95,10 +85,9 @@ class AzureAssetProvider():
         area_config = config.load_area(area)
         
         storage_config = config.load_storage(area_config['storage'])
-        
-        # connectionString = "DefaultEndpointsProtocol=https;AccountName={};AccountKey={}".format(storage_config['name'], storage_config['key1'])
 
         area = area.lower()
+
         selector = selector.lower()
 
         blob_service = BlockBlobService(account_name=storage_config['name'], account_key=storage_config['key1'])
@@ -130,12 +119,7 @@ class AzureAssetProvider():
         
         blob_service.set_container_acl(area_config['container'], public_access=PublicAccess.Container)
 
-        # container.SetPermissions(new BlobContainerPermissions  PublicAccess = BlobContainerPublicAccessType.Blob )
-
-        #debug.logline('+initialize_cors')
         self.initialize_cors(blob_service)
-        #debug.logline('-initialize_cors')
-        #debug.logline('-ensure_access')
 
     def update(self, area, selector, content_type, buffer):
         if area == None:
@@ -145,8 +129,6 @@ class AzureAssetProvider():
         
         storage_config = config.load_storage(area_config['storage'])
         
-        # connectionString = "DefaultEndpointsProtocol=https;AccountName={};AccountKey={}".format(storage_config['name'], storage_config['key1'])
-
         area = area.lower()
 
         # httplib.HTTPConnection.debuglevel = 1
@@ -157,9 +139,7 @@ class AzureAssetProvider():
 
         blob_service.set_container_acl(area_config['container'], public_access=PublicAccess.Container)
 
-        #debug.log('content_type', content_type)
         hash = base64.b64encode(hashlib.md5(buffer).digest())
-        # debug.log('hash', hash)
 
         content_settings = ContentSettings(content_md5=hash)
         if content_type is not None and len(content_type) > 0:

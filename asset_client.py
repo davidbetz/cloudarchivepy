@@ -30,9 +30,8 @@ def spawned(list, options, client, area_config, asset):
     if area_config['remoteBranch'] is not None:
         selector = urljoin(area_config['remoteBranch'], selector)
 
-    # print(area_config['remoteBranch'])
-    # print(selector)
     area = area_config['name']
+    #++ may want to readd this concept at some point
     #code = client.check(area, selector, asset.hash())
     #if options['full'] or code == asset_status_code.not_found or code == asset_status_code.different:
     if options['live']:
@@ -64,7 +63,6 @@ def update(area_config, package, options):
     def run(threads):
         for t2 in threads:
             t2.join()
-            # print('-{}'.format(asset['RelativePath']))
         threads = []
 
     for asset in package['assets']:
@@ -74,11 +72,9 @@ def update(area_config, package, options):
             t = threading.Thread(target=spawned, args=(list, options, client, area_config, asset,))
             threads.append(t)
             t.start()
-            #print('+{}'.format(asset['RelativePath']))
             if len(threads) >= max_threads:
                 run(threads)
    
-    #debug.log('len(threads)', len(threads))
     if len(threads) > 0:
         run(threads)
 
