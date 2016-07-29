@@ -41,11 +41,12 @@ def app(argv):
         if (options['verbose']):
             pass
 
-        index(options)
-
-        #print("Finished. Press enter to exit.")
     except getopt.GetoptError:
         sys.exit(2)
+
+    index(options)
+
+    #print("Finished. Press enter to exit.")
 
 def run(options):
     config = Config.Load()
@@ -101,10 +102,10 @@ def index(options):
 
             file_structure.finalize(area_config['folder'],  updated_list, package['tracking_data'])
 
-        print("area complete. Items indexed: {}".format(len(updated_list)))
+        print("Area complete. Items indexed: {}".format(len(updated_list)))
 
     else:
-        print("area complete. No items updated")
+        print("Area complete. No items updated")
 
 
 if __name__ == '__main__':
