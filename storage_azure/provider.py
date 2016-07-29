@@ -64,8 +64,6 @@ class AzureAssetProvider():
         
         storage_config = config.load_storage(area_config['storage'])
         
-        connectionString = "DefaultEndpointsProtocol=https;AccountName={};AccountKey={}".format(storage_config['name'], storage_config['key1'])
-
         area = area.lower()
 
         blob_service = BlockBlobService(account_name=storage_config['name'], account_key=storage_config['key1'])
@@ -109,8 +107,6 @@ class AzureAssetProvider():
         
         storage_config = config.load_storage(area_config['storage'])
         
-        connectionString = "DefaultEndpointsProtocol=https;AccountName={};AccountKey={}".format(storage_config['name'], storage_config['key1'])
-
         area = area.lower()
 
         blob_service = BlockBlobService(account_name=storage_config['name'], account_key=storage_config['key1'])
