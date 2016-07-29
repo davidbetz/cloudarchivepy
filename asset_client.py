@@ -27,25 +27,26 @@ content_types = [
     
 def spawned(list, options, client, area_config, asset):
     selector = asset['RelativePath']
-    if area_config['remoteBranch'] != None:
+    if area_config['remoteBranch'] is not None:
         selector = urljoin(area_config['remoteBranch'], selector)
 
+    # print(area_config['remoteBranch'])
+    # print(selector)
     area = area_config['name']
-    code = client.check(area, selector, asset.hash())
-    # debug.log('code', code)
-    if options['full'] or code == asset_status_code.not_found or code == asset_status_code.different:
-        if options['live']:
-            client.update(area, selector, get_content_type(asset['Extension']), asset.read())
-            list.append({
-                'category': "asset",
-                'fileType' : asset['Extension'],
-                'selector' : asset['RelativePath'],
-                'hash': asset.hash()
-                }
-            )
-            debug.logline("Updated file selector ({})".format(asset['RelativePath']))
-        else:
-            debug.logline("File selector would have been updated in live mode. ({}, {})".format(area, selector))
+    #code = client.check(area, selector, asset.hash())
+    #if options['full'] or code == asset_status_code.not_found or code == asset_status_code.different:
+    if options['live']:
+        client.update(area, selector, get_content_type(asset['Extension']), asset.read())
+        list.append({
+            'category': "asset",
+            'fileType' : asset['Extension'],
+            'selector' : selector,
+            'hash': asset.hash()
+            }
+        )
+        print("Updated file selector ({})".format(asset['RelativePath']))
+    else:
+        print("File selector would have been updated in live mode. ({}, {})".format(area, selector))
 
 def update(area_config, package, options):
     list = []
@@ -59,6 +60,13 @@ def update(area_config, package, options):
     if hasattr(settings, 'max_threads'):
         max_threads = int(settings.max_threads)
     print('max threads: {}'.format(max_threads))
+
+    def run(threads):
+        for t2 in threads:
+            t2.join()
+            # print('-{}'.format(asset['RelativePath']))
+        threads = []
+
     for asset in package['assets']:
         if max_threads == 1:
             spawned(list, options, client, area_config, asset)
@@ -68,11 +76,12 @@ def update(area_config, package, options):
             t.start()
             #print('+{}'.format(asset['RelativePath']))
             if len(threads) >= max_threads:
-                for t2 in threads:
-                    t2.join()
-                    #print('-{}'.format(asset['RelativePath']))
-                threads = []
+                run(threads)
    
+    #debug.log('len(threads)', len(threads))
+    if len(threads) > 0:
+        run(threads)
+
     return list
 
 

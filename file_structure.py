@@ -38,17 +38,18 @@ def create(area_config, full_update):
         except ValueError:
             pass
 
-    result = load_raw_structure(asset_type_data, area_config['folder'], area_config['folder'], package, full_update)
+    result = load_raw_structure(asset_type_data, area_config['remoteBranch'], area_config['folder'], area_config['folder'], package, full_update)
 
     #debug.log('a', area_config['folder'])
-    #debug.log('a', result)
 
     package['assets'].extend(result)
+
+    # debug.log('package[assets]', package['assets'])
 
     return package
 
 
-def load_raw_structure(file_type_data, base_folder, folder, package, full_update):
+def load_raw_structure(file_type_data, remote_branch, base_folder, folder, package, full_update):
     context = urlclean(folder[len(base_folder):]).lower()
     partArray = urlsplit(context) or []
     part_list = []
@@ -58,8 +59,7 @@ def load_raw_structure(file_type_data, base_folder, folder, package, full_update
     context = '/'.join(part_list)
     #debug.log('context', context)
     asset_list = []
-    asset_type_list = file_type_data or []
-    if len(asset_type_list) > 0:
+    if len(file_type_data) > 0:
         filtered_blob_data = [os.path.join(folder, _) for _ in os.walk(folder).next()[2] if _[0] != '_' and _[0] != '.']
         #filtered_blob_data.extend([_ for _ in fnmatch.filter(filenames, '*.py') if _[0] != '_' and _[0] != '.'])
         
@@ -76,7 +76,7 @@ def load_raw_structure(file_type_data, base_folder, folder, package, full_update
 
         for p in filtered_blob_data:
             extension = os.path.splitext(p)[1][1:]
-            if len([_ for _ in asset_type_list if _['extension'] == extension]) == 0:
+            if len([_ for _ in file_type_data if _['extension'] == extension]) == 0:
                 continue
 
             file_stat = os.stat(p)
@@ -106,17 +106,25 @@ def load_raw_structure(file_type_data, base_folder, folder, package, full_update
 
             #debug.log('base_file_name', base_file_name)
             #debug.log('context', context)
-            #debug.log('rfd', rfd)
 
             #existing = package.tracking_data.FirstOrDefault(o => o.Category == "asset" and o.Selector.Equals(Url.Join(context, p.Name)))
-            existing = [_ for _ in package['tracking_data'] if _['category'] == "asset" and _['selector'] == urljoin(context, base_file_name)]
-            existing = existing[0] if len(existing) > 0 else { 'Hash': '' }
+            existing = [_ for _ in package['tracking_data'] if _['category'] == "asset" and _['selector'] == urljoin(remote_branch, urljoin(context, base_file_name))]
+            existing = existing[0] if len(existing) > 0 else { 'hash': '' }
+
+            # if len(existing['hash']) > 0:
+            # debug.log('tracking_data', package['tracking_data'])
+            #debug.log('rfd', rfd)
+            #debug.log('existing', existing)
+            #debug.log('urljoin(context, base_file_name)', urljoin(context, base_file_name))
 
             if full_update:
                 asset_list.append(rfd)
-            elif existing['Hash'] != rfd.hash():
-                rfd['OldHash'] = existing['Hash']
+            elif existing['hash'] != rfd.hash():
+                #debug.log('existing', existing)
+                #debug.log('existing', rfd.hash())
+                rfd['OldHash'] = existing['hash']
                 asset_list.append(rfd)
+
 
     #+ sub-structure
     '''
@@ -135,10 +143,12 @@ def load_raw_structure(file_type_data, base_folder, folder, package, full_update
         .Select(p => new DirectoryInfo(p))
         .Where(p => p.Name[0] != "."))
         '''
-        result = load_raw_structure(file_type_data, base_folder, os.path.join(folder, d), package, full_update)
+        result = load_raw_structure(file_type_data, remote_branch, base_folder, os.path.join(folder, d), package, full_update)
         #debug.log('result', result)
         #debug.log('os.path.join(folder, d)', os.path.join(folder, d))
         package['assets'].extend(result)
+
+    # debug.log('asset_list', asset_list)
 
     return asset_list
 
@@ -148,7 +158,7 @@ def finalize(base_folder, updated_selector_array, list):
     stabilizationPath = os.path.join(base_folder, constants.dates)
     #jilStabilizationPath = Path.Combine(base_folder, ".jil" + Constants.Dates)
     
-    print (stabilizationPath)
+    # print (stabilizationPath)
     if os.path.exists(stabilizationPath):
         try:
             with open(stabilizationPath, 'r') as f:
@@ -194,4 +204,4 @@ def finalize(base_folder, updated_selector_array, list):
     list.extend(assetData)
     #File.WriteAllText(os.path.join(base_folder, Constants.Dates), json.dumps(list, Formatting.Indented), Encoding.UTF8)
     with open(stabilizationPath, 'w+') as f:
-        f.write(json.dumps(list))
+        f.write(json.dumps(list, indent=4, sort_keys=True))
