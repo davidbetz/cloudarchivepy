@@ -27,13 +27,12 @@ def load():
             if account['key1'].startswith("(") and account['key1'].endswith(")"):
                 key1FileName = account['key1'][1:-1]
                 with open(key1FileName, 'r') as f:
-                    account['key1'] = f.read()
+                    account['key1'] = f.read().strip()
 
-            if account['key1'].startswith("(") and account['key2'].endswith(")"):
+            if account['key2'].startswith("(") and account['key2'].endswith(")"):
                 key2FileName = account['key2'][1:-1]
-                key2FileName = account['key2'].Substring(1, account['key2'].Length - 2);
                 with open(key2FileName, 'r') as f:
-                    account['key2'] = f.read()
+                    account['key2'] = f.read().strip()
 
             storage_accounts[account['name'].lower()] = account
 
