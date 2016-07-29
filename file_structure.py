@@ -168,7 +168,7 @@ def finalize(base_folder, updated_selector_array, list):
 
     list = list or []
 
-    debug.log('updated_selector_array', updated_selector_array)
+    #debug.log('updated_selector_array', updated_selector_array)
 
     for summary in updated_selector_array:
         entry = [_ for _ in list if _['selector'] == summary['selector'] and _['fileType'] is None]

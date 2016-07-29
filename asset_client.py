@@ -59,7 +59,7 @@ def update(area_config, package, options):
     max_threads = 1
     if hasattr(settings, 'max_threads'):
         max_threads = int(settings.max_threads)
-    print('max threads: {}'.format(max_threads))
+    print('Max threads: {}'.format(max_threads))
 
     def run(threads):
         for t2 in threads:

@@ -112,7 +112,7 @@ class AzureAssetProvider():
         )
 
     def ensure_access(self, area):
-        debug.logline('+ensure_access')
+        #debug.logline('+ensure_access')
         if area == None:
             return null
 
@@ -132,10 +132,10 @@ class AzureAssetProvider():
 
         # container.SetPermissions(new BlobContainerPermissions  PublicAccess = BlobContainerPublicAccessType.Blob )
 
-        debug.logline('+initialize_cors')
+        #debug.logline('+initialize_cors')
         self.initialize_cors(blob_service)
-        debug.logline('-initialize_cors')
-        debug.logline('-ensure_access')
+        #debug.logline('-initialize_cors')
+        #debug.logline('-ensure_access')
 
     def update(self, area, selector, content_type, buffer):
         if area == None:
