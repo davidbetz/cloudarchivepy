@@ -1,6 +1,6 @@
-#CloudArchive
+#CloudArchive for Python
 
-**Copyright (c) 2015-2016 David Betz**
+**Copyright (c) 2016 David Betz**
 
 Tool to mirror local branches to Azure or S3.
 
@@ -23,7 +23,7 @@ Basically, do the following...
       
     areas:
       - name: book_images
-        folder: C:\_BOOK
+        folder: /var/archive/_BOOK
         container: books
         remoteBranch: images
         storage: cloudarchive01
@@ -35,7 +35,7 @@ Basically, do the following...
             - extension: gif
               
       - name: book_text
-        folder: C:\_BOOK
+        folder: /var/archive/_BOOK
         container: books
         remoteBranch: text
         storage: cloudarchive01
@@ -43,7 +43,7 @@ Basically, do the following...
             - extension: txt
       
       - name: mp3
-        folder: C:\_AUDIOTEST
+        folder: /var/archive/_AUDIOTEST
         container: mp3
         storage: cloudarchive01
         fileTypes:
@@ -52,7 +52,7 @@ Basically, do the following...
       - name: archives
         remoteBranch: misc
         container: s3 does not use container; use remoteBranch for a remote folder
-        folder: C:\_ARCHIVETEST
+        folder: /var/archive/_ARCHIVETEST
         storage: cloudarchive02
         fileTypes:
             - extension: zip
@@ -65,15 +65,15 @@ In this example, I'm searching a book folder (personally, I scan and OCR most of
         
 You run this with this:
 
-    carchive.exe -a <area_name>
+    python carchive.py -a <area_name>
 
 But this will only do a dry run to show you what will happen. To run for real:
 
-    carchive.exe -a <area_name> -l
+    python carchive.py -a <area_name> -l
 
 Get itemized output with the -v option:
 
-    carchive.exe -a <area_name> -l -v
+    python carchive.py -a <area_name> -l -v
 
 Basically just look at the command line options.
 
@@ -92,11 +92,10 @@ Basically:
     storageAccounts:
         - name: cloudarchive01
           provider: azure
-          key1: (H:\_ENCRYPTED_FOLDER\azure_key.txt)
+          key1: (/srv/_cert/cloud/azure_key)
           key2: azure only uses key 1
             
         - name: cloudarchive02
           provider: s3
-          key1: (F:\_ENCRYPTED_FOLDER\s3_key1.txt)
-          key2: (G:\_ENCRYPTED_FOLDER\s3_key2.txt)
-
+          key1: (/srv/_cert/cloud/s3_access_key_id)
+          key2: (/srv/_cert/cloud/s3_shared_access_key)
