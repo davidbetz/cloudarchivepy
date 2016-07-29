@@ -8,6 +8,8 @@ import hashlib
 
 import datetime
 
+import json
+
 import constants
 
 from raw_file_data import RawFileData
@@ -28,9 +30,13 @@ def create(area_config, full_update):
     package = { 'area': area_config['name'], 'assets': [], 'tracking_data': [] }
 
     stabilizationPath = os.path.join(area_config['folder'], constants.dates)
+    print (stabilizationPath)
     if os.path.exists(stabilizationPath):
-        with open(stabilizationPath, 'r') as f:
-            package['tracking_data'] = json.loads(f.read())
+        try: 
+            with open(stabilizationPath, 'r') as f:
+                package['tracking_data'] = json.loads(f.read())
+        except ValueError:
+            pass
 
     result = load_raw_structure(asset_type_data, area_config['folder'], area_config['folder'], package, full_update)
 
@@ -75,7 +81,7 @@ def load_raw_structure(file_type_data, base_folder, folder, package, full_update
 
             file_stat = os.stat(p)
 
-            created = [_ for _ in package['tracking_data'] if _['Category'] == "asset" and _['Selector'] == urljoin(context, p.Name)]
+            created = [_ for _ in package['tracking_data'] if _['category'] == "asset" and _['selector'] == urljoin(context, p)]
             if len(created) > 0:
                 # debug.log('created', created)
                 created = created[0].created
@@ -103,7 +109,7 @@ def load_raw_structure(file_type_data, base_folder, folder, package, full_update
             #debug.log('rfd', rfd)
 
             #existing = package.tracking_data.FirstOrDefault(o => o.Category == "asset" and o.Selector.Equals(Url.Join(context, p.Name)))
-            existing = [_ for _ in package['tracking_data'] if _['Category'] == "asset" and _['Selector'] == urljoin(context, base_file_name)]
+            existing = [_ for _ in package['tracking_data'] if _['category'] == "asset" and _['selector'] == urljoin(context, base_file_name)]
             existing = existing[0] if len(existing) > 0 else { 'Hash': '' }
 
             if full_update:
@@ -137,52 +143,53 @@ def load_raw_structure(file_type_data, base_folder, folder, package, full_update
     return asset_list
 
 
-def finalize(base_folder, updatedSelectors, list, datetime):
-    utv = datetime.utcnow()
+def finalize(base_folder, updated_selector_array, list):
+    utc = datetime.datetime.utcnow()
     stabilizationPath = os.path.join(base_folder, constants.dates)
     #jilStabilizationPath = Path.Combine(base_folder, ".jil" + Constants.Dates)
     
+    print (stabilizationPath)
     if os.path.exists(stabilizationPath):
-        with open(stabilizationPath, 'r') as f:
-            list = json.loads(f.read())
+        try:
+            with open(stabilizationPath, 'r') as f:
+                list = json.loads(f.read())
+        except ValueError:
+            pass
 
-    #elif (File.Exists(jilStabilizationPath))
-    #
-    #    list = JsonConvert.DeserializeObject<List<SelectorSummary>>(File.ReadAllText(jilStabilizationPath))
-    #
-    if list is None:
-        list = []
+    list = list or []
 
-    for summary in updatedSelectorList:
-        entry = [_ for _ in list if _['Selector'] == summary['Selector'] and _['FileType'] is None]
+    debug.log('updated_selector_array', updated_selector_array)
+
+    for summary in updated_selector_array:
+        entry = [_ for _ in list if _['selector'] == summary['selector'] and _['fileType'] is None]
         #entry = list.FirstOrDefault(p => p.Selector.Equals(summary.Selector) and p.FileType is None)
-        if len(entry) != None:
+        if len(entry) > 0:
             entry = entry[0]
-            entry['FileType'] = summary.FileType
+            entry['fileType'] = summary.FileType
 
         #++ FileType is None => default selector
         #entry = list.FirstOrDefault(p => p.Selector.Equals(summary.Selector) and (p.FileType?.Equals(summary.FileType) or false))
-        entry = [_ for _ in list if _['Selector'] == summary['Selector'] and (_['FileType'] == summary['FileType'] or false)]
-        if entry != None:
+        entry = [_ for _ in list if _['selector'] == summary['selector'] and (_['fileType'] == summary['fileType'] or false)]
+        if len(entry) > 0:
             entry = entry[0]
-            entry['Updated'] = utc
-            entry['Hash'] = summary.Hash
-            entry['Category'] = summary.Category
+            entry['updated'] = utc.replace(microsecond=0).isoformat() + 'Z'
+            entry['hash'] = summary['hash']
+            entry['category'] = summary['category']
 
         else:
             #++ TODO: add time zone setting
             list.append({
-                'Selector': summary['Selector'],
-                'FileType': summary['FileType'],
-                'Created': utc,
-                'Updated': utc,
-                'Category': summary['Category'],
-                'Hash': summary['Hash']
+                'selector': summary['selector'],
+                'fileType': summary['fileType'],
+                'created': utc.replace(microsecond=0).isoformat() + 'Z',
+                'updated': utc.replace(microsecond=0).isoformat() + 'Z',
+                'category': summary['category'],
+                'hash': summary['hash']
             })
 
 
     #list.Where(p => p.Category == "asset").OrderByDescending(p => p.Created)
-    assetData = sorted([_ for _ in list if _['Category'] == 'asset'], lambda _: (_['Created']))
+    assetData = sorted([_ for _ in list if _['category'] == 'asset'], key=lambda _: (_['created']))
     list = []
     list.extend(assetData)
     #File.WriteAllText(os.path.join(base_folder, Constants.Dates), json.dumps(list, Formatting.Indented), Encoding.UTF8)

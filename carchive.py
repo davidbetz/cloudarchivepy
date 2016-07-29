@@ -81,7 +81,7 @@ def index(options):
             print("Publishing area...")
 
         now = datetime.datetime.utcnow()
-        updatedList = []
+        updated_list = []
 
         asset_count = package['assets']
 
@@ -91,19 +91,17 @@ def index(options):
             sys.exit(2)
 
         elif asset_count > 0:
-            updatedList.extend(asset_client.update(area_config, package, options))
+            updated_list.extend(asset_client.update(area_config, package, options))
 
-        return
-
-        if len(updatedList) > 0:
-            later = datetime.utcnow()
+        if len(updated_list) > 0:
+            later = datetime.datetime.utcnow()
             if options['verbose']:
                 print("Publish complete ({} ms)".format((later - now).Milliseconds))
                 print("Updating timestamps and hashes...")
 
-            fule_structure.finalize(area_config['folder'],  updatedList, package.asset_stability_information, datetime.utcnow())
+            file_structure.finalize(area_config['folder'],  updated_list, package['tracking_data'])
 
-        print("area complete. Items indexed: {}".format(len(updatedList)))
+        print("area complete. Items indexed: {}".format(len(updated_list)))
 
     else:
         print("area complete. No items updated")

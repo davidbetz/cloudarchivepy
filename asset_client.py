@@ -60,25 +60,18 @@ def update(area_config, package, options):
         max_threads = int(settings.max_threads)
     print('max threads: {}'.format(max_threads))
     for asset in package['assets']:
-        '''
-        spawned(options, client, area_config, asset)
-        list.append({
-            'category': "asset",
-            'fileType' : asset['Extension'],
-            'selector' : asset['RelativePath'],
-            'hash': asset.hash()
-            }
-        )
-        '''
-        t = threading.Thread(target=spawned, args=(list, options, client, area_config, asset,))
-        threads.append(t)
-        t.start()
-        #print('+{}'.format(asset['RelativePath']))
-        if len(threads) >= max_threads:
-            for t2 in threads:
-                t2.join()
-                #print('-{}'.format(asset['RelativePath']))
-            threads = []
+        if max_threads == 1:
+            spawned(list, options, client, area_config, asset)
+        else:
+            t = threading.Thread(target=spawned, args=(list, options, client, area_config, asset,))
+            threads.append(t)
+            t.start()
+            #print('+{}'.format(asset['RelativePath']))
+            if len(threads) >= max_threads:
+                for t2 in threads:
+                    t2.join()
+                    #print('-{}'.format(asset['RelativePath']))
+                threads = []
    
     return list
 
