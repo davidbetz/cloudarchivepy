@@ -1,155 +1,122 @@
-from general.debug import kwlog, log, logline, logargs
+from general import debug
+
+import boto3
+
+import io
+import hashlib
+import httplib
+
+import asset_status_code
+import config
+
+import base64
 
 class S3AssetProvider():
     def check(self, area, selector, hash):
-        if area == None:
+        if area is None:
             return asset_status_code.error
 
-        storageConfig = StorageConfig.Get(area)
-        credentials = new BasicAWSCredentials(storageConfig.Key1, storageConfig.Key2)
+        area_config = config.load_area(area)
+
+        storage_config = config.load_storage(area_config['storage'])
+
+        s3 = boto3.resource('s3', aws_access_key_id=storage_config['key1'], aws_secret_access_key=storage_config['key2'])
 
         area = area.lower()
 
-        using (var client = new AmazonS3Client(credentials, RegionEndpoint.USEast1))
+        bucket_name = storage_config['name']
+        key = area + '/' + selector
+        
+        try:
+            obj = s3.Object(bucket_name, key).load()
+        except:
+            return asset_status_code.not_found
 
-            bucketName = storageConfig.Name
-            key = area + "/" + selector
-            request = new GetObjectMetadataRequest
+        stored_hash = response_metadata['x-amz-meta-content-md5']
+        if len(stored_hash) == 0:
+            return asset_status_code.not_found
 
-                BucketName = bucketName,
-                Key = key
+        return asset_status_code.same if stored_hash == hash else asset_status_code.different
 
-
-            fi = new S3FileInfo(client, bucketName, key)
-            if (!fi.Exists)
-
-                return asset_status_code.not_found
-
-
-            response = client.GetObjectMetadataAsync(request)
-
-            storedHash = response.Metadata["x-amz-meta-content-md5"]
-            if (string.IsNullOrEmpty(storedHash))
-
-                return asset_status_code.not_found
-
-
-            return storedHash.Equals(hash) ? asset_status_code.Same : asset_status_code.Different
-
+    # not really a stream mechanism
     def stream(self, area, selector):
-
-        if area == None:
-
-            return null
-
-        storageConfig = StorageConfig.Get(area)
-        credentials = new BasicAWSCredentials(storageConfig.Key1, storageConfig.Key2)
-
-        area = area.lower()
-
-        using (var client = new AmazonS3Client(credentials, RegionEndpoint.USEast1))
-
-            request = new GetObjectRequest
-
-                BucketName = storageConfig.Name,
-                Key = area + "/" + selector
-
-            using (var response = client.GetObject(request))
-                return Task.FromResult(new Tuple<string, Stream>(response.Headers["ContentType"], response.ResponseStream))
+        return self.read(area, selector)
 
     def read(self, area, selector):
-        if area == None:
+        if area is None:
             return null
 
-        storageConfig = StorageConfig.Get(area)
-        credentials = new BasicAWSCredentials(storageConfig.Key1, storageConfig.Key2)
+        area_config = config.load_area(area)
+
+        storage_config = config.load_storage(area_config['storage'])
+
+        client = boto3.client('s3', aws_access_key_id=storage_config['key1'], aws_secret_access_key=storage_config['key2'])
 
         area = area.lower()
 
-        using (var client = new AmazonS3Client(credentials, RegionEndpoint.USEast1))
+        hash = base64.b64encode(hashlib.md5(buffer).digest())
 
-            request = new GetObjectRequest
+        args = {
+            'Bucket': storage_config['name'],
+            'Key': area + '/' + selector
+        }
 
-                BucketName = storageConfig.Name,
-                Key = area + "/" + selector
-
-            using (var response = client.GetObject(request))
-                return Task.FromResult(StreamConverter.GetStreamByteArray(response.ResponseStream))
+        return client.get_object(**args)['Body']
 
     def get_url(self, area, selector):
-        if area == None:
+        if area is None:
             return null
 
-        storageConfig = StorageConfig.Get(area)
-        credentials = new BasicAWSCredentials(storageConfig.Key1, storageConfig.Key2)
+        area_config = config.load_area(area)
+
+        storage_config = config.load_storage(area_config['storage'])
+
+        client = boto3.client('s3', aws_access_key_id=storage_config['key1'], aws_secret_access_key=storage_config['key2'])
 
         area = area.lower()
 
-        using (var client = new AmazonS3Client(credentials, RegionEndpoint.USEast1))
-            request = new GetPreSignedUrlRequest
+        hash = base64.b64encode(hashlib.md5(buffer).digest())
 
-                BucketName = storageConfig.Name,
-                Key = area + "/" + selector,
-                Expires = DateTime.Now.AddMinutes(30)
+        args = {
+            'Bucket': storage_config['name'],
+            'Key': area + '/' + selector
+        }
 
-            return Task.FromResult(client.GetPreSignedURL(request))
+        return client.generate_presigned_url(ClientMethod='get_object', Params=args)
 
     # S3 buckets are not like Azure containers; S3 buckets are like Azure accounts; thus, S3 doesn't use area
-    def ensure_access(self, area)
-        storageConfig = StorageConfig.Get(area)
-        credentials = new BasicAWSCredentials(storageConfig.Key1, storageConfig.Key2)
+    def ensure_access(self, area):
+        # does this exist? not seeing it in source code at https://github.com/boto/boto3
+        return
 
-        using (var client = new AmazonS3Client(credentials, RegionEndpoint.USEast1))
-
-            configuration = new CORSConfiguration
-
-                Rules = new List<CORSRule>
-
-                    new CORSRule
-
-                        Id = "all",
-                        AllowedMethods = new List<string> "GET",
-                        AllowedOrigins = new List<string> "*",
-                        MaxAgeSeconds = 3000
-
-
-
-
-            request = new PutCORSConfigurationRequest
-
-                BucketName = storageConfig.Name,
-                Configuration = configuration
-
-
-            await client.PutCORSConfigurationAsync(request)
-
-
-
-    def update(self, area, selector, contentType, buffer)
-        if area == None:
+    def update(self, area, selector, content_type, buffer):
+        if area is None:
             return null
 
-        storageConfig = StorageConfig.Get(area)
-        credentials = new BasicAWSCredentials(storageConfig.Key1, storageConfig.Key2)
+        area_config = config.load_area(area)
+
+        storage_config = config.load_storage(area_config['storage'])
+
+        client = boto3.client('s3', aws_access_key_id=storage_config['key1'], aws_secret_access_key=storage_config['key2'])
 
         area = area.lower()
 
-        hash = QuickHash.Hash(buffer, HashMethod.SHA256)
-        using (var client = new AmazonS3Client(credentials, RegionEndpoint.USEast1))
+        hash = base64.b64encode(hashlib.md5(buffer).digest())
 
-            putObjectRequest = new PutObjectRequest
+        args = {
+            'Bucket': storage_config['name'],
+            'Key': area + '/' + selector,
+            'Body': buffer,
+            'ContentMD5': hash,
+            'ACL': 'public-read'
+        }
 
-                BucketName = storageConfig.Name,
-                Key = area + "/" + selector,
-                InputStream = new MemoryStream(buffer),
-                ContentType = contentType,
-                Metadata =  ["Content-MD5"] = hash ,
-                CannedACL = S3CannedACL.PublicRead
+        if content_type is not None and len(content_type) > 0:
+            args.ContentType = content_type
 
-
-            await client.PutObjectAsync(putObjectRequest)
+        client.put_object(**args)
 
         return hash
 
     def clean_selector(self, selector):
-        return selector.Replace("/", "_").Replace(".", "=")
+        return selector.Replace('/', '_').Replace('.', '=')
