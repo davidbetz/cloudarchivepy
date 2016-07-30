@@ -1,4 +1,4 @@
-from url import urljoin, urlclean, urlsplit
-from params import get_kwarg, get_arg
+from .url import urljoin, urlclean, urlsplit
+from .params import get_kwarg, get_arg
 
-import debug
+from . import debug
