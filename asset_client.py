@@ -59,10 +59,19 @@ def spawned(pending_persist, options, client, area_config, asset):
 
 def update(area_config, package, options):
     pending_persist = []
+
+    area = area_config['name'].lower()
+
     client = asset_provider_builder_create(area_config)
+    if hasattr(client, 'prepare'):
+        getattr(client, 'prepare')(area)
 
     if options['live']:
-        client.ensure_access(area_config['name'])
+        client.ensure_access(area)
+
+    tracking_client = tracking_provider_builder_create(area_config)
+    if hasattr(tracking_client, 'prepare'):
+        getattr(tracking_client, 'prepare')(area)
 
     threads = []
     max_threads = 1
@@ -74,7 +83,7 @@ def update(area_config, package, options):
         for t in threads:
             t.join()
         del threads[:]
-        finalize(area_config, pending_persist)
+        finalize(tracking_client, area_config, pending_persist)
         count = len(pending_persist)
         del pending_persist[:]
         return count
@@ -97,7 +106,7 @@ def update(area_config, package, options):
         cancelled = True
 
     if max_threads == 1:
-        finalize(area_config, pending_persist)
+        finalize(tracking_client, area_config, pending_persist)
         count = len(pending_persist)
     elif len(threads) > 0:
         count = count + run(threads)
@@ -112,10 +121,8 @@ def get_content_type(extension):
     return content_type
 
 
-def finalize(area_config, updated_selector_array):
+def finalize(client, area_config, updated_selector_array):
     base_folder = area_config['folder']
-
-    client = tracking_provider_builder_create(area_config)
 
     utc = datetime.datetime.utcnow()
 
@@ -155,7 +162,6 @@ def finalize(area_config, updated_selector_array):
 
     for asset in updated_selector_array:
         client.update(area_config['name'], asset['selector'], asset['hash'])
-        debug.logline('added:{}'.format(asset['selector']))
 
     with open(stabilizationPath, 'w+') as f:
         f.write(json.dumps(assetData, indent=4, sort_keys=True))

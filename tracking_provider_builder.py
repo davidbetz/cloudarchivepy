@@ -10,6 +10,8 @@ try:
 except:
     pass
 
+from tracking_elastic.provider import ElasticTrackingProvider
+
 def create(area_config):
     tracking_name = area_config['tracking']
     tracking_config = config.load_tracking(tracking_name)
@@ -25,6 +27,9 @@ def create(area_config):
             provider = MongoTrackingProvider()
         except:
             raise ValueError("pymongo missing; is pymongo installed?")
+    elif name == "elastic":
+        # elastic is http-based, so no external anything required
+        provider = ElasticTrackingProvider()
     else:
         raise ValueError("no")
 

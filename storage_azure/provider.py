@@ -19,6 +19,20 @@ try:
     from azure.storage import CorsRule
 
     class AzureAssetProvider():
+        def prepare(self, area):
+            if area is None:
+                return null
+
+            area_config = config.load_area(area)
+
+            storage_config = config.load_storage(area_config['storage'])
+
+            blob_service = BlockBlobService(account_name=storage_config['name'], account_key=storage_config['key1'])
+
+            blob_service.create_container(area_config['container'])
+
+            blob_service.set_container_acl(area_config['container'], public_access=PublicAccess.Container)
+
         def check(self, area, selector, hash):
             if area == None:
                 return asset_status_code.error
@@ -48,7 +62,6 @@ try:
             area_config = config.load_area(area)
             
             storage_config = config.load_storage(area_config['storage'])
-            
 
             area = area.lower()
 
@@ -73,9 +86,6 @@ try:
 
             blob_service = BlockBlobService(account_name=storage_config['name'], account_key=storage_config['key1'])
 
-            blob_service.create_container(area_config['container'])
-            blob_service.set_container_acl(area_config['container'], public_access=PublicAccess.Container)
-
             return block_blob.get_blob_to_bytes(area_config['container'], selector)
 
         def get_url(self, area, selector):
@@ -95,16 +105,12 @@ try:
 
             blob_service = BlockBlobService(account_name=storage_config['name'], account_key=storage_config['key1'])
 
-            blob_service.create_container(area_config['container'])
-            blob_service.set_container_acl(area_config['container'], public_access=PublicAccess.Container)
-
             return blob_service.make_blob_url(
                 container_name=area_config['container'],
                 blob_name=selector,
             )
 
         def ensure_access(self, area):
-            #debug.logline('+ensure_access')
             if area == None:
                 return null
 
@@ -115,10 +121,6 @@ try:
             area = area.lower()
 
             blob_service = BlockBlobService(account_name=storage_config['name'], account_key=storage_config['key1'])
-
-            blob_service.create_container(area_config['container'])
-            
-            blob_service.set_container_acl(area_config['container'], public_access=PublicAccess.Container)
 
             self.initialize_cors(blob_service)
 
@@ -136,10 +138,6 @@ try:
             # http.client.HTTPConnection.debuglevel = 1
 
             blob_service = BlockBlobService(account_name=storage_config['name'], account_key=storage_config['key1'])
-
-            blob_service.create_container(area_config['container'])
-
-            blob_service.set_container_acl(area_config['container'], public_access=PublicAccess.Container)
 
             hash = base64.b64encode(hashlib.md5(buffer).digest())
 

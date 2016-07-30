@@ -37,8 +37,6 @@ try:
                 'selector': selector
             })
 
-            debug.log('item', item)
-
             return item
 
 
@@ -51,8 +49,6 @@ try:
             tracking_config = config.load_tracking(area_config['tracking'])
 
             location = "mongodb://{}:{}@{}".format(tracking_config['key1'], tracking_config['key2'], tracking_config['location'])
-
-            debug.log('location', location)
 
             client = MongoClient(location)
 

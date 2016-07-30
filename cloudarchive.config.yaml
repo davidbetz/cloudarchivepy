@@ -11,6 +11,12 @@ trackingAccounts:
       key1: (/srv/_cert/cloud/mongo_username)
       key2: (/srv/_cert/cloud/mongo_password)
 
+    - name: elastic01
+      provider: elastic
+      location: (/srv/_cert/cloud/elastic_location)
+      key1: (/srv/_cert/cloud/elastic_username)
+      key2: (/srv/_cert/cloud/elastic_password)
+
 storageAccounts:
     - name: cloudarchive01
       provider: azure
@@ -40,7 +46,7 @@ areas:
     container: books
     remoteBranch: text
     storage: cloudarchive01
-    tracking: mongo01
+    tracking: elastic01
     fileTypes:
         - extension: txt
   
