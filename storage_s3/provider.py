@@ -1,7 +1,5 @@
 from general import debug
 
-import boto3
-
 import io
 import hashlib
 
@@ -15,112 +13,117 @@ import config
 
 import base64
 
-class S3AssetProvider():
-    def check(self, area, selector, hash):
-        if area is None:
-            return asset_status_code.error
+try:
+    import boto3
 
-        area_config = config.load_area(area)
+    class S3AssetProvider():
+        def check(self, area, selector, hash):
+            if area is None:
+                return asset_status_code.error
 
-        storage_config = config.load_storage(area_config['storage'])
+            area_config = config.load_area(area)
 
-        s3 = boto3.resource('s3', aws_access_key_id=storage_config['key1'], aws_secret_access_key=storage_config['key2'])
+            storage_config = config.load_storage(area_config['storage'])
 
-        area = area.lower()
+            s3 = boto3.resource('s3', aws_access_key_id=storage_config['key1'], aws_secret_access_key=storage_config['key2'])
 
-        bucket_name = storage_config['name']
-        key = area + '/' + selector
-        
-        try:
-            obj = s3.Object(bucket_name, key).load()
-        except:
-            return asset_status_code.not_found
+            area = area.lower()
 
-        stored_hash = response_metadata['x-amz-meta-content-md5']
-        if len(stored_hash) == 0:
-            return asset_status_code.not_found
+            bucket_name = storage_config['name']
+            key = area + '/' + selector
+            
+            try:
+                obj = s3.Object(bucket_name, key).load()
+            except:
+                return asset_status_code.not_found
 
-        return asset_status_code.same if stored_hash == hash else asset_status_code.different
+            stored_hash = response_metadata['x-amz-meta-content-md5']
+            if len(stored_hash) == 0:
+                return asset_status_code.not_found
 
-    # not really a stream mechanism
-    def stream(self, area, selector):
-        return self.read(area, selector)
+            return asset_status_code.same if stored_hash == hash else asset_status_code.different
 
-    def read(self, area, selector):
-        if area is None:
-            return null
+        # not really a stream mechanism
+        def stream(self, area, selector):
+            return self.read(area, selector)
 
-        area_config = config.load_area(area)
+        def read(self, area, selector):
+            if area is None:
+                return null
 
-        storage_config = config.load_storage(area_config['storage'])
+            area_config = config.load_area(area)
 
-        client = boto3.client('s3', aws_access_key_id=storage_config['key1'], aws_secret_access_key=storage_config['key2'])
+            storage_config = config.load_storage(area_config['storage'])
 
-        area = area.lower()
+            client = boto3.client('s3', aws_access_key_id=storage_config['key1'], aws_secret_access_key=storage_config['key2'])
 
-        hash = base64.b64encode(hashlib.md5(buffer).digest())
+            area = area.lower()
 
-        args = {
-            'Bucket': storage_config['name'],
-            'Key': area + '/' + selector
-        }
+            hash = base64.b64encode(hashlib.md5(buffer).digest())
 
-        return client.get_object(**args)['Body']
+            args = {
+                'Bucket': storage_config['name'],
+                'Key': area + '/' + selector
+            }
 
-    def get_url(self, area, selector):
-        if area is None:
-            return null
+            return client.get_object(**args)['Body']
 
-        area_config = config.load_area(area)
+        def get_url(self, area, selector):
+            if area is None:
+                return null
 
-        storage_config = config.load_storage(area_config['storage'])
+            area_config = config.load_area(area)
 
-        client = boto3.client('s3', aws_access_key_id=storage_config['key1'], aws_secret_access_key=storage_config['key2'])
+            storage_config = config.load_storage(area_config['storage'])
 
-        area = area.lower()
+            client = boto3.client('s3', aws_access_key_id=storage_config['key1'], aws_secret_access_key=storage_config['key2'])
 
-        hash = base64.b64encode(hashlib.md5(buffer).digest())
+            area = area.lower()
 
-        args = {
-            'Bucket': storage_config['name'],
-            'Key': area + '/' + selector
-        }
+            hash = base64.b64encode(hashlib.md5(buffer).digest())
 
-        return client.generate_presigned_url(ClientMethod='get_object', Params=args)
+            args = {
+                'Bucket': storage_config['name'],
+                'Key': area + '/' + selector
+            }
 
-    # S3 buckets are not like Azure containers; S3 buckets are like Azure accounts; thus, S3 doesn't use area
-    def ensure_access(self, area):
-        # does this exist? not seeing it in source code at https://github.com/boto/boto3
-        return
+            return client.generate_presigned_url(ClientMethod='get_object', Params=args)
 
-    def update(self, area, selector, content_type, buffer):
-        if area is None:
-            return null
+        # S3 buckets are not like Azure containers; S3 buckets are like Azure accounts; thus, S3 doesn't use area
+        def ensure_access(self, area):
+            # does this exist? not seeing it in source code at https://github.com/boto/boto3
+            return
 
-        area_config = config.load_area(area)
+        def update(self, area, selector, content_type, buffer):
+            if area is None:
+                return null
 
-        storage_config = config.load_storage(area_config['storage'])
+            area_config = config.load_area(area)
 
-        client = boto3.client('s3', aws_access_key_id=storage_config['key1'], aws_secret_access_key=storage_config['key2'])
+            storage_config = config.load_storage(area_config['storage'])
 
-        area = area.lower()
+            client = boto3.client('s3', aws_access_key_id=storage_config['key1'], aws_secret_access_key=storage_config['key2'])
 
-        hash = base64.b64encode(hashlib.md5(buffer).digest()).decode()
+            area = area.lower()
 
-        args = {
-            'Bucket': storage_config['name'],
-            'Key': area + '/' + selector,
-            'Body': buffer,
-            'ContentMD5': hash,
-            'ACL': 'public-read'
-        }
+            hash = base64.b64encode(hashlib.md5(buffer).digest()).decode()
 
-        if content_type is not None and len(content_type) > 0:
-            args.ContentType = content_type
+            args = {
+                'Bucket': storage_config['name'],
+                'Key': area + '/' + selector,
+                'Body': buffer,
+                'ContentMD5': hash,
+                'ACL': 'public-read'
+            }
 
-        client.put_object(**args)
+            if content_type is not None and len(content_type) > 0:
+                args.ContentType = content_type
 
-        return hash
+            client.put_object(**args)
 
-    def clean_selector(self, selector):
-        return selector.Replace('/', '_').Replace('.', '=')
+            return hash
+
+        def clean_selector(self, selector):
+            return selector.Replace('/', '_').Replace('.', '=')
+except:
+    pass

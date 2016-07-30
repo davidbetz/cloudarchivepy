@@ -1,7 +1,14 @@
 import config
 
-from storage_azure.provider import AzureAssetProvider
-from storage_s3.provider import S3AssetProvider
+try:
+    from storage_azure.provider import AzureAssetProvider
+except:
+    pass
+
+try:
+    from storage_s3.provider import S3AssetProvider
+except:
+    pass
 
 def create(area_config):
     storage_name = area_config['storage']
@@ -9,9 +16,15 @@ def create(area_config):
     name = storage_config['provider'].lower()
 
     if name == "azure":
-        provider = AzureAssetProvider()
+        try:
+            provider = AzureAssetProvider()
+        except:
+            raise ValueError("azure missing; is azure-storage installed?")
     elif name == "s3":
-        provider = S3AssetProvider()
+        try:
+            provider = S3AssetProvider()
+        except:
+            raise ValueError("s3 missing; is boto3 installed?")
     else:
         raise ValueError("no")
 
