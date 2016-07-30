@@ -14,9 +14,9 @@ import constants
 
 from raw_file_data import RawFileData
 
-def create(area_config, full_update):
-    asset_type_data = area_config['fileTypes']
+import types
 
+def create(area_config, full_update):
     if area_config is None:
         raise ValueError("area_config missing")
 
@@ -25,6 +25,8 @@ def create(area_config, full_update):
 
     if 'folder' not in area_config:
         raise ValueError("Required area folder")
+
+    asset_type_data = area_config['fileTypes']
 
     package = { 'area': area_config['name'], 'assets': [], 'tracking_data': [] }
 
@@ -53,8 +55,13 @@ def load_raw_structure(file_type_data, remote_branch, base_folder, folder, packa
     context = '/'.join(part_list)
     asset_list = []
     if len(file_type_data) > 0:
-        filtered_blob_data = [os.path.join(folder, _) for _ in os.walk(folder).next()[2] if _[0] != '_' and _[0] != '.']
-        
+        walked = next(os.walk(folder))
+
+        files = walked[2]
+        dirs = walked[1]
+    
+        filtered_blob_data = [os.path.join(folder, _) for _ in files if _[0] != '_' and _[0] != '.']
+
         for p in filtered_blob_data:
             extension = os.path.splitext(p)[1][1:]
             if len([_ for _ in file_type_data if _['extension'] == extension]) == 0:
@@ -88,7 +95,7 @@ def load_raw_structure(file_type_data, remote_branch, base_folder, folder, packa
                 rfd['OldHash'] = existing['hash']
                 asset_list.append(rfd)
 
-    for d in os.walk(folder).next()[1]:
+    for d in dirs:
         result = load_raw_structure(file_type_data, remote_branch, base_folder, os.path.join(folder, d), package, full_update)
         package['assets'].extend(result)
 
@@ -99,14 +106,12 @@ def finalize(base_folder, updated_selector_array):
     utc = datetime.datetime.utcnow()
     stabilizationPath = os.path.join(base_folder, constants.dates)
     
-    if os.path.exists(stabilizationPath):
-        try:
-            with open(stabilizationPath, 'r') as f:
-                list = json.loads(f.read())
-        except ValueError:
-            pass
-
-    list = list or []
+    list = []
+    try:
+        with open(stabilizationPath, 'r') as f:
+            list = json.loads(f.read())
+    except ValueError:
+        pass
 
     for summary in updated_selector_array:
         entry = [_ for _ in list if _['selector'] == summary['selector'] and _['fileType'] is None]
@@ -118,7 +123,7 @@ def finalize(base_folder, updated_selector_array):
         if len(entry) > 0:
             entry = entry[0]
             entry['updated'] = utc.replace(microsecond=0).isoformat() + 'Z'
-            entry['hash'] = summary['hash']
+            entry['hash'] = summary['hash'].decode()
             entry['category'] = summary['category']
 
         else:
@@ -128,10 +133,10 @@ def finalize(base_folder, updated_selector_array):
                 'created': utc.replace(microsecond=0).isoformat() + 'Z',
                 'updated': utc.replace(microsecond=0).isoformat() + 'Z',
                 'category': summary['category'],
-                'hash': summary['hash']
+                'hash': summary['hash'].decode()
             })
 
-
     assetData = sorted([_ for _ in list if _['category'] == 'asset'], key=lambda _: (_['created']))
+
     with open(stabilizationPath, 'w+') as f:
         f.write(json.dumps(assetData, indent=4, sort_keys=True))

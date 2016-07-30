@@ -4,7 +4,11 @@ import boto3
 
 import io
 import hashlib
-import httplib
+
+try:
+    import httplib
+except:
+    import http.client
 
 import asset_status_code
 import config
@@ -101,7 +105,7 @@ class S3AssetProvider():
 
         area = area.lower()
 
-        hash = base64.b64encode(hashlib.md5(buffer).digest())
+        hash = base64.b64encode(hashlib.md5(buffer).digest()).decode()
 
         args = {
             'Bucket': storage_config['name'],

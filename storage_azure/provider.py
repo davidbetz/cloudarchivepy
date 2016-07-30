@@ -6,7 +6,11 @@ from azure.storage import CorsRule
 
 import io
 import hashlib
-import httplib
+
+try:
+    import httplib
+except:
+    import http.client
 
 import asset_status_code
 import config
@@ -128,6 +132,7 @@ class AzureAssetProvider():
         area = area.lower()
 
         # httplib.HTTPConnection.debuglevel = 1
+        # http.client.HTTPConnection.debuglevel = 1
 
         blob_service = BlockBlobService(account_name=storage_config['name'], account_key=storage_config['key1'])
 

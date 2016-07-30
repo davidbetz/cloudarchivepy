@@ -60,13 +60,13 @@ def index(options):
 
     package = file_structure.create(area_config, options['full'])
 
-    if package is not None and len(package['assets']) > 0:
+    asset_count = len(package['assets'])
+
+    if package is not None and asset_count > 0:
         if (options['live']):
             print("Publishing area...")
 
         now = datetime.datetime.utcnow()
-
-        asset_count = package['assets']
 
         updated_count = 0
         storage = config.load_storage(area_config['storage'])
