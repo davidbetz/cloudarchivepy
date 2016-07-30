@@ -75,7 +75,7 @@ def index(options):
             sys.exit(2)
 
         elif asset_count > 0:
-            updated_count = asset_client.update(area_config, package, options, lambda _: file_structure.finalize(area_config['folder'], _))
+            updated_count = asset_client.update(area_config, package, options)
 
         if updated_count > 0:
             later = datetime.datetime.utcnow()

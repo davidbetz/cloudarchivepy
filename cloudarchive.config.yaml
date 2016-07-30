@@ -1,3 +1,16 @@
+trackingAccounts:
+    - name: cloudarchive01
+      provider: azure
+      location: azure uses name as location
+      key1: (/srv/_cert/cloud/azure_key)
+      key2: azure only uses key 1
+
+    - name: mongo01
+      provider: mongo
+      location: (/srv/_cert/cloud/mongo_location)
+      key1: (/srv/_cert/cloud/mongo_username)
+      key2: (/srv/_cert/cloud/mongo_password)
+
 storageAccounts:
     - name: cloudarchive01
       provider: azure
@@ -27,6 +40,7 @@ areas:
     container: books
     remoteBranch: text
     storage: cloudarchive01
+    tracking: mongo01
     fileTypes:
         - extension: txt
   
@@ -42,6 +56,7 @@ areas:
     container: s3 does not use container; use remoteBranch for a remote folder
     folder: /var/archive/_ARCHIVETEST
     storage: cloudarchive02
+    tracking: mongo01
     fileTypes:
         - extension: zip
         - extension: rar

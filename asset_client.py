@@ -1,10 +1,20 @@
+from general import debug, get_kwarg, urljoin
+
+import threading
+
+import datetime
+
+import os
+
+import json
+
 from asset_provider_builder import create as asset_provider_builder_create
 
-from general import debug, get_kwarg, urljoin
+from tracking_provider_builder import create as tracking_provider_builder_create
 
 import asset_status_code
 
-import threading
+import constants
 
 import settings
 
@@ -47,7 +57,7 @@ def spawned(pending_persist, options, client, area_config, asset):
     else:
         print("File selector would have been updated in live mode. ({}, {})".format(area, selector))
 
-def update(area_config, package, options, persist):
+def update(area_config, package, options):
     pending_persist = []
     client = asset_provider_builder_create(area_config)
 
@@ -64,7 +74,7 @@ def update(area_config, package, options, persist):
         for t in threads:
             t.join()
         del threads[:]
-        persist(pending_persist)
+        finalize(area_config, pending_persist)
         count = len(pending_persist)
         del pending_persist[:]
         return count
@@ -87,7 +97,7 @@ def update(area_config, package, options, persist):
         cancelled = True
 
     if max_threads == 1:
-        persist(pending_persist)
+        finalize(area_config, pending_persist)
         count = len(pending_persist)
     elif len(threads) > 0:
         count = count + run(threads)
@@ -100,3 +110,52 @@ def get_content_type(extension):
     if len(content_type) > 0:
         content_type = content_type[0]
     return content_type
+
+
+def finalize(area_config, updated_selector_array):
+    base_folder = area_config['folder']
+
+    client = tracking_provider_builder_create(area_config)
+
+    utc = datetime.datetime.utcnow()
+
+    stabilizationPath = os.path.join(base_folder, constants.dates)
+    
+    list = []
+    try:
+        with open(stabilizationPath, 'r') as f:
+            list = json.loads(f.read())
+    except IOError:
+        pass
+
+    for summary in updated_selector_array:
+        entry = [_ for _ in list if _['selector'] == summary['selector'] and _['fileType'] is None]
+        if len(entry) > 0:
+            entry = entry[0]
+            entry['fileType'] = summary.FileType
+
+        entry = [_ for _ in list if _['selector'] == summary['selector'] and (_['fileType'] == summary['fileType'] or false)]
+        if len(entry) > 0:
+            entry = entry[0]
+            entry['updated'] = utc.replace(microsecond=0).isoformat() + 'Z'
+            entry['hash'] = summary['hash'].decode()
+            entry['category'] = summary['category']
+
+        else:
+            list.append({
+                'selector': summary['selector'],
+                'fileType': summary['fileType'],
+                'created': utc.replace(microsecond=0).isoformat() + 'Z',
+                'updated': utc.replace(microsecond=0).isoformat() + 'Z',
+                'category': summary['category'],
+                'hash': summary['hash'].decode()
+            })
+
+    assetData = sorted([_ for _ in list if _['category'] == 'asset'], key=lambda _: (_['created']))
+
+    for asset in updated_selector_array:
+        client.update(area_config['name'], asset['selector'], asset['hash'])
+        debug.logline('added:{}'.format(asset['selector']))
+
+    with open(stabilizationPath, 'w+') as f:
+        f.write(json.dumps(assetData, indent=4, sort_keys=True))

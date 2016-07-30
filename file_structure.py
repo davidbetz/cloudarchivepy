@@ -35,7 +35,7 @@ def create(area_config, full_update):
         try: 
             with open(stabilizationPath, 'r') as f:
                 package['tracking_data'] = json.loads(f.read())
-        except ValueError:
+        except IOError:
             pass
 
     result = load_raw_structure(asset_type_data, area_config['remoteBranch'], area_config['folder'], area_config['folder'], package, full_update)
@@ -100,43 +100,3 @@ def load_raw_structure(file_type_data, remote_branch, base_folder, folder, packa
         package['assets'].extend(result)
 
     return asset_list
-
-
-def finalize(base_folder, updated_selector_array):
-    utc = datetime.datetime.utcnow()
-    stabilizationPath = os.path.join(base_folder, constants.dates)
-    
-    list = []
-    try:
-        with open(stabilizationPath, 'r') as f:
-            list = json.loads(f.read())
-    except ValueError:
-        pass
-
-    for summary in updated_selector_array:
-        entry = [_ for _ in list if _['selector'] == summary['selector'] and _['fileType'] is None]
-        if len(entry) > 0:
-            entry = entry[0]
-            entry['fileType'] = summary.FileType
-
-        entry = [_ for _ in list if _['selector'] == summary['selector'] and (_['fileType'] == summary['fileType'] or false)]
-        if len(entry) > 0:
-            entry = entry[0]
-            entry['updated'] = utc.replace(microsecond=0).isoformat() + 'Z'
-            entry['hash'] = summary['hash'].decode()
-            entry['category'] = summary['category']
-
-        else:
-            list.append({
-                'selector': summary['selector'],
-                'fileType': summary['fileType'],
-                'created': utc.replace(microsecond=0).isoformat() + 'Z',
-                'updated': utc.replace(microsecond=0).isoformat() + 'Z',
-                'category': summary['category'],
-                'hash': summary['hash'].decode()
-            })
-
-    assetData = sorted([_ for _ in list if _['category'] == 'asset'], key=lambda _: (_['created']))
-
-    with open(stabilizationPath, 'w+') as f:
-        f.write(json.dumps(assetData, indent=4, sort_keys=True))
