@@ -25,7 +25,7 @@ content_types = [
     ("html", "text/html"),
 ]
     
-def spawned(list, options, client, area_config, asset):
+def spawned(pending_persist, options, client, area_config, asset):
     selector = asset['RelativePath']
     if area_config['remoteBranch'] is not None:
         selector = urljoin(area_config['remoteBranch'], selector)
@@ -36,7 +36,7 @@ def spawned(list, options, client, area_config, asset):
     #if options['full'] or code == asset_status_code.not_found or code == asset_status_code.different:
     if options['live']:
         client.update(area, selector, get_content_type(asset['Extension']), asset.read())
-        list.append({
+        pending_persist.append({
             'category': "asset",
             'fileType' : asset['Extension'],
             'selector' : selector,
@@ -47,8 +47,8 @@ def spawned(list, options, client, area_config, asset):
     else:
         print("File selector would have been updated in live mode. ({}, {})".format(area, selector))
 
-def update(area_config, package, options):
-    list = []
+def update(area_config, package, options, persist):
+    pending_persist = []
     client = asset_provider_builder_create(area_config)
 
     if options['live']:
@@ -61,24 +61,38 @@ def update(area_config, package, options):
     print('Max threads: {}'.format(max_threads))
 
     def run(threads):
-        for t2 in threads:
-            t2.join()
-        threads = []
+        for t in threads:
+            t.join()
+        del threads[:]
+        persist(pending_persist)
+        count = len(pending_persist)
+        del pending_persist[:]
+        return count
 
-    for asset in package['assets']:
-        if max_threads == 1:
-            spawned(list, options, client, area_config, asset)
-        else:
-            t = threading.Thread(target=spawned, args=(list, options, client, area_config, asset,))
-            threads.append(t)
-            t.start()
-            if len(threads) >= max_threads:
-                run(threads)
-   
-    if len(threads) > 0:
-        run(threads)
+    count = 0
+    cancelled = False
+    try:
+        for asset in package['assets']:
+            if cancelled:
+                break
+            if max_threads == 1:
+                spawned(pending_persist, options, client, area_config, asset)
+            else:
+                t = threading.Thread(target=spawned, args=(pending_persist, options, client, area_config, asset,))
+                threads.append(t)
+                t.start()
+                if len(threads) >= max_threads:
+                    count = count + run(threads)
+    except KeyboardInterrupt:
+        cancelled = True
 
-    return list
+    if max_threads == 1:
+        persist(pending_persist)
+        count = len(pending_persist)
+    elif len(threads) > 0:
+        count = count + run(threads)
+
+    return count
 
 
 def get_content_type(extension):

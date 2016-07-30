@@ -95,7 +95,7 @@ def load_raw_structure(file_type_data, remote_branch, base_folder, folder, packa
     return asset_list
 
 
-def finalize(base_folder, updated_selector_array, list):
+def finalize(base_folder, updated_selector_array):
     utc = datetime.datetime.utcnow()
     stabilizationPath = os.path.join(base_folder, constants.dates)
     

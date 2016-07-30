@@ -65,27 +65,25 @@ def index(options):
             print("Publishing area...")
 
         now = datetime.datetime.utcnow()
-        updated_list = []
 
         asset_count = package['assets']
 
+        updated_count = 0
         storage = config.load_storage(area_config['storage'])
         if asset_count > 0 and storage is None:
             print("Storage provider is not set, but there are assets to deploy.")
             sys.exit(2)
 
         elif asset_count > 0:
-            updated_list.extend(asset_client.update(area_config, package, options))
+            updated_count = asset_client.update(area_config, package, options, lambda _: file_structure.finalize(area_config['folder'], _))
 
-        if len(updated_list) > 0:
+        if updated_count > 0:
             later = datetime.datetime.utcnow()
             if options['verbose']:
                 print("Publish complete ({} ms)".format((later - now).Milliseconds))
-                print("Updating timestamps and hashes...")
+                print("Updating timestamps and hashes...")            
 
-            file_structure.finalize(area_config['folder'], updated_list, package['tracking_data'])
-
-        print("Area complete. Items indexed: {}".format(len(updated_list)))
+        print("Area complete. Items indexed: {}".format(updated_count))
 
     else:
         print("Area complete. No items updated")
