@@ -35,10 +35,12 @@ content_types = [
     ("html", "text/html"),
 ]
     
-def spawned(pending_persist, options, client, area_config, asset):
+def spawned(pending_persist, options, client, tracking_client, area_config, asset):
     selector = asset['RelativePath']
-    if area_config['remoteBranch'] is not None:
+    try:
         selector = urljoin(area_config['remoteBranch'], selector)
+    except:
+        pass
 
     area = area_config['name']
     #++ may want to readd this concept at some point
@@ -46,13 +48,20 @@ def spawned(pending_persist, options, client, area_config, asset):
     #if options['full'] or code == asset_status_code.not_found or code == asset_status_code.different:
     if options['live']:
         client.update(area, selector, get_content_type(asset['Extension']), asset.read())
+
+        hash = asset.hash()
+
+        if tracking_client is not None:
+            tracking_client.update(area, selector, asset['Manifest'], hash)
+
         pending_persist.append({
             'category': "asset",
             'fileType' : asset['Extension'],
             'selector' : selector,
-            'hash': asset.hash()
+            'hash': hash
             }
         )
+
         print("Updated file selector ({})".format(asset['RelativePath']))
     else:
         print("File selector would have been updated in live mode. ({}, {})".format(area, selector))
@@ -69,14 +78,18 @@ def update(area_config, package, options):
     if options['live']:
         client.ensure_access(area)
 
-    tracking_client = tracking_provider_builder_create(area_config)
-    if hasattr(tracking_client, 'prepare'):
-        getattr(tracking_client, 'prepare')(area)
+    try:
+        tracking_client = tracking_provider_builder_create(area_config)
+        if hasattr(tracking_client, 'prepare'):
+            getattr(tracking_client, 'prepare')(area)
+    except:
+        pass
 
     threads = []
     max_threads = 1
     if hasattr(settings, 'max_threads'):
         max_threads = int(settings.max_threads)
+
     print('Max threads: {}'.format(max_threads))
 
     def run(threads):
@@ -95,9 +108,9 @@ def update(area_config, package, options):
             if cancelled:
                 break
             if max_threads == 1:
-                spawned(pending_persist, options, client, area_config, asset)
+                spawned(pending_persist, options, client, tracking_client, area_config, asset)
             else:
-                t = threading.Thread(target=spawned, args=(pending_persist, options, client, area_config, asset,))
+                t = threading.Thread(target=spawned, args=(pending_persist, options, client, tracking_client, area_config, asset,))
                 threads.append(t)
                 t.start()
                 if len(threads) >= max_threads:
@@ -106,7 +119,7 @@ def update(area_config, package, options):
         cancelled = True
 
     if max_threads == 1:
-        finalize(tracking_client, area_config, pending_persist)
+        finalize(area_config, pending_persist)
         count = len(pending_persist)
     elif len(threads) > 0:
         count = count + run(threads)
@@ -121,7 +134,7 @@ def get_content_type(extension):
     return content_type
 
 
-def finalize(client, area_config, updated_selector_array):
+def finalize(area_config, updated_selector_array):
     base_folder = area_config['folder']
 
     utc = datetime.datetime.utcnow()
@@ -159,9 +172,6 @@ def finalize(client, area_config, updated_selector_array):
             })
 
     assetData = sorted([_ for _ in list if _['category'] == 'asset'], key=lambda _: (_['created']))
-
-    for asset in updated_selector_array:
-        client.update(area_config['name'], asset['selector'], asset['hash'])
 
     with open(stabilizationPath, 'w+') as f:
         f.write(json.dumps(assetData, indent=4, sort_keys=True))

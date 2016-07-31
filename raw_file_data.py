@@ -1,6 +1,7 @@
 import os
 import hashlib
 import base64
+import json
 
 class RawFileData():
     def __init__(self, fullname):
@@ -15,10 +16,13 @@ class RawFileData():
         return self._data[key]
 
     def __repr__(self):
-        return '\n'.join(['{}:{}'.format(x,y) for x,y in self._data.iteritems()])
+        return '\n'.join(['{}:{}'.format(x, json.dumps(y, indent=4, sort_keys=True)) for x,y in self._data.iteritems()])
+
+    def __iter__(self):
+        return self._data.iteritems()
 
     def dump(self):
-        return self.data
+        return self._data
 
     def hash(self):
         return base64.b64encode(hashlib.md5(self.read()).digest())

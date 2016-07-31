@@ -18,8 +18,7 @@ try:
 
     class MongoTrackingProvider():
         def read(self, area, selector):
-            if area is None:
-                return null
+            assert area is not None, 'area is none; should already be validated'
 
             area_config = config.load_area(area)
 
@@ -41,8 +40,7 @@ try:
 
 
         def update(self, area, selector, hash):
-            if area is None:
-                return null
+            assert area is not None, 'area is none; should already be validated'
 
             area_config = config.load_area(area)
 
@@ -56,12 +54,18 @@ try:
 
             area = area.lower()
 
-            # hash = base64.b64encode(hashlib.md5(buffer).digest())
-
-            db['{}_tracking'.format(area)].insert_one({
+            entity = {
                 'selector': selector,
                 'hash': hash
-            })
+            }
+
+            for key, value in [(key, value) for key, value in manifest.iteritems() if key[0] != '_']:
+                if key in ('selector', 'hash'):
+                    continue
+
+                entity[key] = value
+
+            db['{}_tracking'.format(area)].insert_one(entity)
 
 except:
     pass

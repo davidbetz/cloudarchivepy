@@ -1,13 +1,16 @@
 import sys
+import os
 import getopt
 import datetime
 import argparse
+
+import econtent
 
 from general import debug
 
 import config
 import file_structure
-import asset_client
+import client
 
 def app(argv):
     options = {}
@@ -58,6 +61,16 @@ def index(options):
 
     print("Beginning fullscan...")
 
+    '''
+    manifest_package = file_structure.create_catalog(area_config, options['full'])
+
+    for asset in manifest_package['assets']:
+        print type(econtent)
+        print asset['RelativePath']
+        manfest = econtent.read_file(os.path.join(area_config['folder'], asset['RelativePath']))
+        debug.log('manfest', manfest)
+    '''
+
     package = file_structure.create(area_config, options['full'])
 
     asset_count = len(package['assets'])
@@ -75,7 +88,7 @@ def index(options):
             sys.exit(2)
 
         elif asset_count > 0:
-            updated_count = asset_client.update(area_config, package, options)
+            updated_count = client.update(area_config, package, options)
 
         if updated_count > 0:
             later = datetime.datetime.utcnow()

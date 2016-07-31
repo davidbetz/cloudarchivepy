@@ -13,8 +13,13 @@ except:
 from tracking_elastic.provider import ElasticTrackingProvider
 
 def create(area_config):
-    tracking_name = area_config['tracking']
+    try:
+        tracking_name = area_config['tracking']
+    except:
+        raise ValueError('tracking not set')
+
     tracking_config = config.load_tracking(tracking_name)
+
     name = tracking_config['provider'].lower()
 
     if name == "azure":
