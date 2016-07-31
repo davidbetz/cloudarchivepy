@@ -54,6 +54,7 @@ areas:
     folder: /var/archive/_AUDIOTEST
     container: mp3
     storage: cloudarchive01
+    tracking: cloudarchive01
     fileTypes:
         - extension: mp3
        
