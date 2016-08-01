@@ -20,6 +20,7 @@ def app(argv):
     parser.add_argument("-l", '--live', help="Live run. Without this, it's a simulation.", action="store_true", default=False)
     parser.add_argument("-f", '--full',  help="Full update, default is incremental.", action="store_true", default=False)
 
+
     args = parser.parse_args()
 
     options['area'] = args.area
@@ -61,17 +62,7 @@ def index(options):
 
     print("Beginning fullscan...")
 
-    '''
-    manifest_package = file_structure.create_catalog(area_config, options['full'])
-
-    for asset in manifest_package['assets']:
-        print type(econtent)
-        print asset['RelativePath']
-        manfest = econtent.read_file(os.path.join(area_config['folder'], asset['RelativePath']))
-        debug.log('manfest', manfest)
-    '''
-
-    package = file_structure.create(area_config, options['full'])
+    package = file_structure.create(area_config, options)
 
     asset_count = len(package['assets'])
 

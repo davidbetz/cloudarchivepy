@@ -17,11 +17,11 @@ from raw_file_data import RawFileData
     return _create([{ 'extension': '.manifest' }], area_config, full_update, manifest_search=True);
 '''
 
-def create(area_config, full_update):
-    return _create(area_config['fileTypes'], area_config, full_update);
+def create(area_config, options):
+    return _create(area_config['fileTypes'], area_config, options);
 
 
-def _create(file_type_data, area_config, full_update):
+def _create(file_type_data, area_config, options):
     package = { 'area': area_config['name'], 'assets': [], 'tracking_data': [] }
 
     stabilizationPath = os.path.join(area_config['folder'], constants.dates)
@@ -33,14 +33,14 @@ def _create(file_type_data, area_config, full_update):
 
     remoteBranch = area_config['remoteBranch'] if 'remoteBranch' in area_config else ''
 
-    result = _load(file_type_data, remoteBranch, area_config['folder'], area_config['folder'], package, full_update)
+    result = _load(file_type_data, remoteBranch, area_config['folder'], area_config['folder'], package, options)
 
     package['assets'].extend(result)
 
     return package
 
 
-def _load(file_type_data, remote_branch, base_folder, folder, package, full_update):
+def _load(file_type_data, remote_branch, base_folder, folder, package, options):
     context = urlclean(folder[len(base_folder):])
     partArray = urlsplit(context) or []
     part_list = []
@@ -55,8 +55,6 @@ def _load(file_type_data, remote_branch, base_folder, folder, package, full_upda
     except:
         folder_manitest = None
     
-    #debug.log('folder_manitest', folder_manitest)
-
     if len(file_type_data) > 0:
         walked = next(os.walk(folder))
 
@@ -90,34 +88,69 @@ def _load(file_type_data, remote_branch, base_folder, folder, package, full_upda
             rfd['RelativePath'] = urljoin(rfd['Path'], rfd['Name'])
             rfd['Manifest'] = {}
 
+            if check_for_changes(rfd, package['tracking_data'], urljoin(remote_branch, urljoin(context, base_file_name)), options):
+                asset_list.append(rfd)
+
+            # TODO: folder manifest even a good idea? everything would have to be updated on update, or extra tracking required
             if folder_manitest is not None:
                 for key, value in folder_manitest.iteritems():
                     rfd['Manifest'][key] = value
 
-            file_manifest_path = urljoin('/' + os.path.dirname(p), '.' + base_file_name + '.manifest')
-            try:
+            manifest_base_name = '.' + base_file_name + '.manifest'
+            file_manifest_path = urljoin('/' + os.path.dirname(p), manifest_base_name)
+            try :
                 file_manifest = econtent.read_file(file_manifest_path)
-                for key, value in file_manifest.iteritems():
-                    rfd['Manifest'][key] = value
             except:
                 file_manifest = None
 
+            if file_manifest is not None:
+                for key, value in file_manifest.iteritems():
+                    rfd['Manifest'][key] = value
+
+                file_manifest_stat = os.stat(file_manifest_path)
+
+                manifest_created = [_ for _ in package['tracking_data'] if _['category'] == "manifest" and _['selector'] == urljoin(context, manifest_base_name)]
+
+                if len(manifest_created) > 0:
+                    manifest_created = manifest_created[0]['created']
+                else:
+                    manifest_created = datetime.datetime.fromtimestamp(file_manifest_stat.st_ctime).replace(microsecond=0).isoformat() + 'Z'
+
+                manifest_rfd = RawFileData(file_manifest_path)
+                manifest_rfd['CreatedDateTime'] = manifest_created
+                manifest_rfd['ModifiedDateTime'] = datetime.datetime.fromtimestamp(file_manifest_stat.st_mtime).replace(microsecond=0).isoformat() + 'Z'
+                manifest_rfd['Name'] = manifest_base_name
+                manifest_rfd['Extension'] = '.manifest'
+                manifest_rfd['Path'] = urljoin(context, manifest_base_name)
+                manifest_rfd['RelativePath'] = urljoin(context, manifest_base_name)
+                rfd['manifest_rfd'] = manifest_rfd
+
+                if check_for_changes(manifest_rfd, package['tracking_data'], urljoin(context, manifest_base_name), options):
+                    asset_list.append(rfd)
+
             render_manifest(rfd)
 
-            existing = [_ for _ in package['tracking_data'] if _['category'] == "asset" and _['selector'] == urljoin(remote_branch, urljoin(context, base_file_name))]
-            existing = existing[0] if len(existing) > 0 else { 'hash': '' }
-
-            if full_update:
-                asset_list.append(rfd)
-            elif existing['hash'] != rfd.hash():
-                rfd['OldHash'] = existing['hash']
-                asset_list.append(rfd)
-
     for d in dirs:
-        result = _load(file_type_data, remote_branch, base_folder, os.path.join(folder, d), package, full_update)
+        result = _load(file_type_data, remote_branch, base_folder, os.path.join(folder, d), package, options)
         package['assets'].extend(result)
 
     return asset_list
+
+def check_for_changes(data, tracking, selector, options):
+    type = 'manifest' if data.is_manifest else 'asset'
+    existing = [_ for _ in tracking if _['category'] == type and _['selector'] == selector]
+    existing = existing[0] if len(existing) > 0 else { 'hash': '' }
+
+    if options['full']:
+        if options['verbose']:
+            print('new item ({})'.format(selector))
+        return True
+
+    elif existing['hash'] != data.hash():
+        if options['verbose']:
+            print('hash mismatch for {} ({}|{}|{})'.format(type, selector, existing['hash'], data.hash()))
+        data['OldHash'] = existing['hash']
+        return True
 
 def render_manifest(rfd):
     manifest = rfd['Manifest']

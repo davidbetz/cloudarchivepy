@@ -55,16 +55,30 @@ def spawned(pending_persist, options, client, tracking_client, area_config, asse
             tracking_client.update(area, selector, asset['Manifest'], hash)
 
         pending_persist.append({
-            'category': "asset",
+            'category' : 'asset',
             'fileType' : asset['Extension'],
             'selector' : selector,
             'hash': hash
             }
         )
 
-        print("Updated file selector ({})".format(asset['RelativePath']))
+        try:
+            manifest_rfd = asset['manifest_rfd']
+            pending_persist.append({
+                'category' : 'manifest',
+                'fileType' : '.manifest',
+                'selector' : manifest_rfd['RelativePath'],
+                'hash': manifest_rfd.hash()
+                }
+            )
+        except:
+            pass
+
+        if not asset.is_manifest:
+            print("Updated file ({})".format(asset['RelativePath']))
     else:
-        print("File selector would have been updated in live mode. ({}, {})".format(area, selector))
+        if not asset.is_manifest:
+            print("File would have been updated in live mode. ({}, {})".format(area, selector))
 
 def update(area_config, package, options):
     pending_persist = []
@@ -104,11 +118,13 @@ def update(area_config, package, options):
     count = 0
     cancelled = False
     try:
-        for asset in package['assets']:
+        for asset in [_ for _ in package['assets'] if not _.is_manifest]:
             if cancelled:
                 break
             if max_threads == 1:
                 spawned(pending_persist, options, client, tracking_client, area_config, asset)
+                finalize(area_config, pending_persist, options)
+                del pending_persist[:]
             else:
                 t = threading.Thread(target=spawned, args=(pending_persist, options, client, tracking_client, area_config, asset,))
                 threads.append(t)
@@ -119,7 +135,7 @@ def update(area_config, package, options):
         cancelled = True
 
     if max_threads == 1:
-        finalize(area_config, pending_persist)
+        finalize(area_config, pending_persist, options)
         count = len(pending_persist)
     elif len(threads) > 0:
         count = count + run(threads)
@@ -134,7 +150,7 @@ def get_content_type(extension):
     return content_type
 
 
-def finalize(area_config, updated_selector_array):
+def finalize(area_config, updated_summary_array, options):
     base_folder = area_config['folder']
 
     utc = datetime.datetime.utcnow()
@@ -148,7 +164,9 @@ def finalize(area_config, updated_selector_array):
     except IOError:
         pass
 
-    for summary in updated_selector_array:
+    for summary in updated_summary_array:
+        if options['verbose']:
+            print('updating status ({})'.format(summary['selector']))
         entry = [_ for _ in list if _['selector'] == summary['selector'] and _['fileType'] is None]
         if len(entry) > 0:
             entry = entry[0]
@@ -171,7 +189,7 @@ def finalize(area_config, updated_selector_array):
                 'hash': summary['hash'].decode()
             })
 
-    assetData = sorted([_ for _ in list if _['category'] == 'asset'], key=lambda _: (_['created']))
+    assetData = sorted([_ for _ in list], key=lambda _: (_['created']))
 
     with open(stabilizationPath, 'w+') as f:
         f.write(json.dumps(assetData, indent=4, sort_keys=True))

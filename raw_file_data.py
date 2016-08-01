@@ -16,10 +16,24 @@ class RawFileData():
         return self._data[key]
 
     def __repr__(self):
-        return '\n'.join(['{}:{}'.format(x, json.dumps(y, indent=4, sort_keys=True)) for x,y in self._data.iteritems()])
+        out = []
+        for x,y in self._data.iteritems():
+            if isinstance(y, RawFileData):
+                out.append('(((({}'.format(x))
+                out.append('{}'.format(y))
+                out.append('))))')
+            else:
+                out.append('{}:{}'.format(x, json.dumps(y, indent=4, sort_keys=True)))
+
+        return '\n'.join(out)
 
     def __iter__(self):
         return self._data.iteritems()
+
+    @property
+    def is_manifest(self):
+        # Manifests don't have Manifest
+        return 'Manifest' not in self._data       
 
     def dump(self):
         return self._data
