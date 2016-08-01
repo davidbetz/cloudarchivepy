@@ -18,8 +18,7 @@ try:
 
     class S3AssetProvider():
         def check(self, area, selector, hash):
-            if area is None:
-                return asset_status_code.error
+            assert area is not None, 'area is none; should already be validated'
 
             area_config = config.load_area(area)
 
@@ -48,8 +47,7 @@ try:
             return self.read(area, selector)
 
         def read(self, area, selector):
-            if area is None:
-                return null
+            assert area is not None, 'area is none; should already be validated'
 
             area_config = config.load_area(area)
 
@@ -69,8 +67,7 @@ try:
             return client.get_object(**args)['Body']
 
         def get_url(self, area, selector):
-            if area is None:
-                return null
+            assert area is not None, 'area is none; should already be validated'
 
             area_config = config.load_area(area)
 
@@ -95,8 +92,7 @@ try:
             return
 
         def update(self, area, selector, content_type, buffer):
-            if area is None:
-                return null
+            assert area is not None, 'area is none; should already be validated'
 
             area_config = config.load_area(area)
 

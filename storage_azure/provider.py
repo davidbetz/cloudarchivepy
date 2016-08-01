@@ -20,8 +20,7 @@ try:
 
     class AzureAssetProvider():
         def prepare(self, area):
-            if area is None:
-                return null
+            assert area is not None, 'area is none; should already be validated'
 
             area_config = config.load_area(area)
 
@@ -34,8 +33,7 @@ try:
             blob_service.set_container_acl(area_config['container'], public_access=PublicAccess.Container)
 
         def check(self, area, selector, hash):
-            if area == None:
-                return asset_status_code.error
+            assert area is not None, 'area is none; should already be validated'
 
             area_config = config.load_area(area)
 
@@ -56,8 +54,7 @@ try:
 
 
         def stream(self, area, selector):
-            if area == None:
-                return null
+            assert area is not None, 'area is none; should already be validated'
 
             area_config = config.load_area(area)
             
@@ -75,8 +72,7 @@ try:
             return (blob.properties.content_settings.content_type, stream)
 
         def read(self, area, selector):
-            if area == None:
-                return null
+            assert area is not None, 'area is none; should already be validated'
 
             area_config = config.load_area(area)
             
@@ -89,8 +85,7 @@ try:
             return block_blob.get_blob_to_bytes(area_config['container'], selector)
 
         def get_url(self, area, selector):
-            if area == None:
-                return null
+            assert area is not None, 'area is none; should already be validated'
 
             if selector == None:
                 return null
@@ -111,8 +106,7 @@ try:
             )
 
         def ensure_access(self, area):
-            if area == None:
-                return null
+            assert area is not None, 'area is none; should already be validated'
 
             area_config = config.load_area(area)
             
@@ -125,8 +119,7 @@ try:
             self.initialize_cors(blob_service)
 
         def update(self, area, selector, content_type, buffer):
-            if area == None:
-                return null
+            assert area is not None, 'area is none; should already be validated'
 
             area_config = config.load_area(area)
             
