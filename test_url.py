@@ -9,6 +9,13 @@ class TestBuilderCreator(unittest.TestCase):
 
         self.assertEqual(urljoin(base, path), 'srv/project/content/frog')
 
+    def test_urljoinmulti(self):
+        base = 'srv'
+        path1 = 'project/content'
+        path2 = ''
+
+        self.assertEqual(urljoin(path2, urljoin(base, path1)), 'srv/project/content')
+
     def test_urlclean(self):
         base = '/srv/project/'
 

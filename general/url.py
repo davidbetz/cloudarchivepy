@@ -9,4 +9,4 @@ def urlsplit(path):
     return urlclean(path).split('/')
 
 def urljoin(*args):
-    return '/'.join([urlclean(_) for _ in args])
+    return '/'.join([urlclean(_) for _ in args if len(_) > 0])
