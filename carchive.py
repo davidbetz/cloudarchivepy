@@ -84,7 +84,7 @@ def index(options):
         if updated_count > 0:
             later = datetime.datetime.utcnow()
             if options['verbose']:
-                print("Publish complete ({} ms)".format((later - now).Milliseconds))
+                print("Publish complete ({} ms)".format((later - now).total_seconds() * 1000))
                 print("Updating timestamps and hashes...")            
 
         print("Area complete. Items indexed: {}".format(updated_count))
