@@ -110,7 +110,7 @@ def update(area_config, package, options):
         for t in threads:
             t.join()
         del threads[:]
-        finalize(tracking_client, area_config, pending_persist)
+        finalize(area_config, pending_persist, options)
         count = len(pending_persist)
         del pending_persist[:]
         return count
