@@ -33,9 +33,13 @@ def _create(file_type_data, area_config, options):
 
     remoteBranch = area_config['remoteBranch'] if 'remoteBranch' in area_config else ''
 
-    result = _load(file_type_data, remoteBranch, area_config['folder'], area_config['folder'], package, options)
+    assets, manifests = _load(file_type_data, remoteBranch, area_config['folder'], area_config['folder'], package, options)
 
-    package['assets'].extend(result)
+    package['assets'] = assets
+    package['manifests'] = manifests
+
+    #debug.log('assets', assets)
+    #debug.log('manifests', manifests)
 
     return package
 
@@ -43,12 +47,11 @@ def _create(file_type_data, area_config, options):
 def _load(file_type_data, remote_branch, base_folder, folder, package, options):
     context = urlclean(folder[len(base_folder):])
     partArray = urlsplit(context) or []
-    part_list = []
-
     part_list = [(_[1:] if _.startswith("$") else _) for _ in partArray]
 
     context = '/'.join(part_list)
     asset_list = []
+    manifests = []
 
     try:
         folder_manitest = econtent.read_file(urljoin('/' + folder, '.manifest'))
@@ -79,6 +82,7 @@ def _load(file_type_data, remote_branch, base_folder, folder, package, options):
             base_file_name = os.path.basename(p)
 
             rfd = RawFileData(p)
+            rfd['Category'] = 'asset'
             rfd['CreatedDateTime'] = created
             rfd['ModifiedDateTime'] = datetime.datetime.fromtimestamp(file_stat.st_mtime).replace(microsecond=0).isoformat() + 'Z'
             rfd['Name'] = base_file_name
@@ -100,6 +104,7 @@ def _load(file_type_data, remote_branch, base_folder, folder, package, options):
             file_manifest_path = urljoin('/' + os.path.dirname(p), manifest_base_name)
             try :
                 file_manifest = econtent.read_file(file_manifest_path)
+                manifests.append({ 'file_manifest': file_manifest, 'related_selector': rfd['RelativePath'], 'related_filename': p, 'rfd': rfd })
             except:
                 file_manifest = None
 
@@ -117,6 +122,7 @@ def _load(file_type_data, remote_branch, base_folder, folder, package, options):
                     manifest_created = datetime.datetime.fromtimestamp(file_manifest_stat.st_ctime).replace(microsecond=0).isoformat() + 'Z'
 
                 manifest_rfd = RawFileData(file_manifest_path)
+                manifest_rfd['Category'] = 'manifest'
                 manifest_rfd['CreatedDateTime'] = manifest_created
                 manifest_rfd['ModifiedDateTime'] = datetime.datetime.fromtimestamp(file_manifest_stat.st_mtime).replace(microsecond=0).isoformat() + 'Z'
                 manifest_rfd['Name'] = manifest_base_name
@@ -124,6 +130,7 @@ def _load(file_type_data, remote_branch, base_folder, folder, package, options):
                 manifest_rfd['Path'] = urljoin(context, manifest_base_name)
                 manifest_rfd['RelativePath'] = urljoin(context, manifest_base_name)
                 rfd['manifest_rfd'] = manifest_rfd
+                #manifest_rfd['rfd'] = rfd
 
                 if check_for_changes(manifest_rfd, package['tracking_data'], urljoin(context, manifest_base_name), options):
                     asset_list.append(rfd)
@@ -131,15 +138,23 @@ def _load(file_type_data, remote_branch, base_folder, folder, package, options):
             render_manifest(rfd)
 
     for d in dirs:
-        result = _load(file_type_data, remote_branch, base_folder, os.path.join(folder, d), package, options)
-        package['assets'].extend(result)
+        result, manifests_next_set = _load(file_type_data, remote_branch, base_folder, os.path.join(folder, d), package, options)
+        asset_list.extend(result)
+        manifests.extend(manifests_next_set)
 
-    return asset_list
+    return (asset_list, manifests)
 
 def check_for_changes(data, tracking, selector, options):
     type = 'manifest' if data.is_manifest else 'asset'
     existing = [_ for _ in tracking if _['category'] == type and _['selector'] == selector]
     existing = existing[0] if len(existing) > 0 else { 'hash': '' }
+
+    '''
+    debug.log('type', type)
+    debug.log('existing', existing)
+    debug.log('hash', existing['hash'])
+    debug.log('data.hash()', data.hash())
+    '''
 
     if options['full']:
         if options['verbose']:

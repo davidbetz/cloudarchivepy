@@ -27,13 +27,21 @@ class RawFileData():
 
         return '\n'.join(out)
 
+    @property
+    def json(self):
+        return json.dumps(self, indent=4, sort_keys=True)
+
     def __iter__(self):
         return self._data.iteritems()
 
     @property
     def is_manifest(self):
         # Manifests don't have Manifest
-        return 'Manifest' not in self._data       
+        return 'Manifest' not in self._data  
+
+    @property
+    def fullname(self):
+        return self._fullname
 
     def dump(self):
         return self._data

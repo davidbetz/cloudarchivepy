@@ -12,6 +12,10 @@ import config
 import file_structure
 import client
 
+import settings
+
+from middleware import Handler as MiddlewareHandler
+
 def app(argv):
     options = {}
     parser = argparse.ArgumentParser(add_help=True)
@@ -64,7 +68,19 @@ def index(options):
 
     package = file_structure.create(area_config, options)
 
-    asset_count = len(package['assets'])
+    handler = MiddlewareHandler(area=area_config['name'], assets=package['assets'], manifests=package['manifests'])
+    handler.set([mw for a, mw in settings.middleware if a == area_config['name']][0])
+    handler.execute()
+    
+    package['assets'].extend(handler['pending_list'])
+
+    assets = []
+    for n in package['assets']:
+        if n['Category'] == 'asset':
+            assets.append(n)
+
+    asset_count = len(assets)
+    #([_ for _ in package['assets'] if 'Category' in _ and _['Category'] == 'asset'])
 
     if package is not None and asset_count > 0:
         if (options['live']):

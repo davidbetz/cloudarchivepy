@@ -35,7 +35,7 @@ content_types = [
     ("html", "text/html"),
 ]
     
-def spawned(pending_persist, options, client, tracking_client, area_config, asset):
+def spawned(pending_persist, options, provider, tracking_provider, area_config, asset):
     selector = asset['RelativePath']
     try:
         selector = urljoin(area_config['remoteBranch'], selector)
@@ -44,15 +44,15 @@ def spawned(pending_persist, options, client, tracking_client, area_config, asse
 
     area = area_config['name']
     #++ may want to readd this concept at some point
-    #code = client.check(area, selector, asset.hash())
+    #code = provider.check(area, selector, asset.hash())
     #if options['full'] or code == asset_status_code.not_found or code == asset_status_code.different:
     if options['live']:
-        client.update(area, selector, get_content_type(asset['Extension']), asset.read())
+        provider.update(area, selector, get_content_type(asset['Extension']), asset.read())
 
         hash = asset.hash()
 
-        if tracking_client is not None:
-            tracking_client.update(area, selector, asset['Manifest'], hash)
+        if tracking_provider is not None:
+            tracking_provider.update(area, selector, asset['Manifest'], hash)
 
         pending_persist.append({
             'category' : 'asset',
@@ -85,17 +85,17 @@ def update(area_config, package, options):
 
     area = area_config['name'].lower()
 
-    client = asset_provider_builder_create(area_config)
-    if hasattr(client, 'prepare'):
-        getattr(client, 'prepare')(area)
+    provider = asset_provider_builder_create(area_config)
+    if hasattr(provider, 'prepare'):
+        getattr(provider, 'prepare')(area)
 
     if options['live']:
-        client.ensure_access(area)
+        provider.ensure_access(area)
 
     try:
-        tracking_client = tracking_provider_builder_create(area_config)
-        if hasattr(tracking_client, 'prepare'):
-            getattr(tracking_client, 'prepare')(area)
+        tracking_provider = tracking_provider_builder_create(area_config)
+        if hasattr(tracking_provider, 'prepare'):
+            getattr(tracking_provider, 'prepare')(area)
     except:
         pass
 
@@ -122,11 +122,11 @@ def update(area_config, package, options):
             if cancelled:
                 break
             if max_threads == 1:
-                spawned(pending_persist, options, client, tracking_client, area_config, asset)
+                spawned(pending_persist, options, provider, tracking_provider, area_config, asset)
                 finalize(area_config, pending_persist, options)
                 del pending_persist[:]
             else:
-                t = threading.Thread(target=spawned, args=(pending_persist, options, client, tracking_client, area_config, asset,))
+                t = threading.Thread(target=spawned, args=(pending_persist, options, provider, tracking_provider, area_config, asset,))
                 threads.append(t)
                 t.start()
                 if len(threads) >= max_threads:
@@ -151,6 +151,8 @@ def get_content_type(extension):
 
 
 def finalize(area_config, updated_summary_array, options):
+    debug.log('updated_summary_array', updated_summary_array)
+
     base_folder = area_config['folder']
 
     utc = datetime.datetime.utcnow()
