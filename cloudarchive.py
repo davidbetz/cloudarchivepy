@@ -69,10 +69,15 @@ def index(options):
     package = file_structure.create(area_config, options)
 
     handler = MiddlewareHandler(area=area_config['name'], assets=package['assets'], manifests=package['manifests'])
-    handler.set([mw for a, mw in settings.middleware if a == area_config['name']][0])
+    filtered_mw = [mw for a, mw in settings.middleware if a == area_config['name']]
+    try:
+        handler.set(filtered_mw[0])
+    except:
+        pass
     handler.execute()
-    
-    package['assets'].extend(handler['pending_list'])
+
+    if handler['pending_list'] is not None:
+        package['assets'].extend(handler['pending_list'])
 
     assets = []
     for n in package['assets']:
