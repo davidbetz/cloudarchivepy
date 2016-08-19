@@ -54,11 +54,6 @@ try:
 
             db.authenticate(tracking_config['key1'], tracking_config['key2'], source='admin')
 
-            print('location:{}'.format(tracking_config['location']))
-            print('trackingContainer:{}'.format(area_config['trackingContainer']))
-            print('key1:{}'.format(tracking_config['key1']))
-            print('key2:{}'.format(tracking_config['key2']))
-
             area = area.lower()
 
             entity = {

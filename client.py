@@ -151,8 +151,6 @@ def get_content_type(extension):
 
 
 def finalize(area_config, updated_summary_array, options):
-    debug.log('updated_summary_array', updated_summary_array)
-
     base_folder = area_config['folder']
 
     utc = datetime.datetime.utcnow()
