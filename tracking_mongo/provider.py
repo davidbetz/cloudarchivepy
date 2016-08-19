@@ -34,7 +34,7 @@ try:
 
             # hash = base64.b64encode(hashlib.md5(buffer).digest())
 
-            item = db['{}'.format(area)].find({
+            item = db[area].find_one({
                 'selector': selector
             })
 
@@ -56,18 +56,17 @@ try:
 
             area = area.lower()
 
-            entity = {
-                'selector': selector,
-                'hash': hash
-            }
+            entity = self.read(area, selector) or {
+                    'selector': selector
+                }
 
             for key, value in [(key, value) for key, value in manifest.iteritems() if key[0] != '_']:
-                if key in ('selector', 'hash'):
+                if key in ('selector'):
                     continue
 
                 entity[key] = value
 
-            db['{}'.format(area)].insert_one(entity)
+            db[area].replace_one({ 'selector': selector }, entity, True)
 
 except:
     pass
