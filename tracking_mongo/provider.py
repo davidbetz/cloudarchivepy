@@ -17,6 +17,14 @@ try:
     from pymongo import MongoClient
 
     class MongoTrackingProvider():
+        def _get_database(self, area):
+            area_config = config.load_area(area)
+
+            trackingContainer = area_config['trackingContainer'] if 'trackingContainer' in area_config else 'cloudarchive'
+            
+            return trackingContainer
+
+
         def read(self, area, selector):
             assert area is not None, 'area is none; should already be validated'
 
@@ -26,15 +34,11 @@ try:
 
             client = MongoClient(tracking_config['location'])
 
-            db = client[area_config['trackingContainer']]
+            db = client[self._get_database(area)]
 
             db.authenticate(tracking_config['key1'], tracking_config['key2'], source='admin')
 
-            area = area.lower()
-
-            # hash = base64.b64encode(hashlib.md5(buffer).digest())
-
-            item = db[area].find_one({
+            item = db[area_config['name']].find_one({
                 'selector': selector
             })
 
@@ -50,13 +54,11 @@ try:
 
             client = MongoClient(tracking_config['location'])
 
-            db = client[area_config['trackingContainer']]
+            db = client[self._get_database(area)]
 
             db.authenticate(tracking_config['key1'], tracking_config['key2'], source='admin')
 
-            area = area.lower()
-
-            entity = self.read(area, selector) or {
+            entity = self.read(area_config['name'], selector) or {
                     'selector': selector
                 }
 
@@ -66,7 +68,7 @@ try:
 
                 entity[key] = value
 
-            db[area].replace_one({ 'selector': selector }, entity, True)
+            db[area_config['name']].replace_one({ 'selector': selector }, entity, True)
 
 except:
     pass

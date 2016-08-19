@@ -18,6 +18,14 @@ try:
     from azure.common import AzureMissingResourceHttpError
 
     class AzureTrackingProvider():
+        def _get_table(self, area):
+            area_config = config.load_area(area)
+
+            trackingContainer = area_config['trackingContainer'] if 'trackingContainer' in area_config else 'cloudarchive'
+            
+            return trackingContainer
+
+
         def prepare(self, area):
             assert area is not None, 'area is none; should already be validated'
 
@@ -26,8 +34,10 @@ try:
             tracking_config = config.load_tracking(area_config['tracking'])
 
             table_service = TableService(account_name=tracking_config['name'], account_key=tracking_config['key1'])
-            
-            table_service.create_table(area_config['trackingContainer'])
+
+            trackingContainer = self._get_table(area)
+
+            table_service.create_table(self._get_table(area))
 
 
         def read(self, area, selector):
@@ -37,11 +47,11 @@ try:
 
             tracking_config = config.load_tracking(area_config['tracking'])
 
-            table_service = TableService(account_name=area_config['name'], account_key=tracking_config['key1'])
+            table_service = TableService(account_name=tracking_config['name'], account_key=tracking_config['key1'])
             
             area = area.lower()
 
-            item = table_service.query_entity(area_config['trackingContainer'], area, selector.replace('/','_'))
+            item = table_service.query_entity(self._get_table(area), area, selector.replace('/','_'))
 
             item = item[0] if len(item) > 0 else {}
 
@@ -55,7 +65,7 @@ try:
 
             tracking_config = config.load_tracking(area_config['tracking'])
 
-            table_service = TableService(account_name=area_config['name'], account_key=tracking_config['key1'])
+            table_service = TableService(account_name=tracking_config['name'], account_key=tracking_config['key1'])
             
             area = area.lower()
 
@@ -72,7 +82,7 @@ try:
 
                 entity[key] = value
 
-            table_service.insert_or_replace_entity(area_config['trackingContainer'], entity)
+            table_service.insert_or_replace_entity(self._get_table(area), entity)
 
 except:
     pass

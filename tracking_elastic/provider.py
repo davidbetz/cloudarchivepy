@@ -42,6 +42,23 @@ class ElasticTrackingProvider():
         return response
 
 
+    def _get_endpoint(self, area):
+        assert area is not None, 'area is none; should already be validated'
+
+        area_config = config.load_area(area)
+
+        tracking_config = config.load_tracking(area_config['tracking'])
+
+        location = tracking_config['location']
+
+        location = location.replace('https://', 'https://{}:{}@'.format(tracking_config['key1'], tracking_config['key2']))
+        location = location.replace('http://', 'http://{}:{}@'.format(tracking_config['key1'], tracking_config['key2']))
+        
+        trackingContainer = area_config['trackingContainer'] if 'trackingContainer' in area_config else 'cloudarchive'
+
+        return '{}/{}'.format(location, trackingContainer)
+
+
     def prepare(self, area):
         assert area is not None, 'area is none; should already be validated'
 
@@ -59,7 +76,7 @@ class ElasticTrackingProvider():
                     }
                 },
                 'mappings': {
-                    area_config['trackingContainer']: {
+                    area: {
                         'properties': {
                             'area': {
                                 'type': 'string'
@@ -98,25 +115,14 @@ class ElasticTrackingProvider():
 
         tracking_config = config.load_tracking(area_config['tracking'])
         
-        endpoint = '{}/{}/{}'.format(tracking_config['location'], area_config['name'], area_config['trackingContainer'])
+        endpoint = self._get_endpoint(area)
 
-        result = self._call('get', endpoint)
+        result = self._call('get', endpoint + '/' + area_config['name'])
 
-        return json.loads(result)
-
-    def _get_endpoint(self, area):
-        assert area is not None, 'area is none; should already be validated'
-
-        area_config = config.load_area(area)
-
-        tracking_config = config.load_tracking(area_config['tracking'])
-
-        location = tracking_config['location']
-
-        location = location.replace('https://', 'https://{}:{}@'.format(tracking_config['key1'], tracking_config['key2']))
-        location = location.replace('http://', 'http://{}:{}@'.format(tracking_config['key1'], tracking_config['key2']))
-        
-        return '{}/{}'.format(location, area_config['name'])
+        try:
+            return json.loads(result)
+        except:
+            return None
 
 
     def update(self, area, selector, manifest, hash):
@@ -131,12 +137,10 @@ class ElasticTrackingProvider():
 
         area_config = config.load_area(area)
 
-        endpoint = urljoin(endpoint, area_config['trackingContainer'], selector.replace('/','_'))
+        endpoint = urljoin(endpoint, area_config['name'], selector.replace('/','_'))
 
-        entity = {
-            'area': area,
-            'selector': selector,
-            'hash': hash
+        entity = self.read(area, selector) or {
+            'selector': selector
         }
 
         for key, value in [(key, value) for key, value in manifest.iteritems() if key[0] != '_']:
