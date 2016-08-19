@@ -24,33 +24,40 @@ try:
 
             tracking_config = config.load_tracking(area_config['tracking'])
 
-            client = MongoClient("mongodb://{}:{}@{}".format(tracking_config['key1'], tracking_config['key2'], tracking_config['location']))
+            client = MongoClient(tracking_config['location'])
 
-            db = client[area_config['container']]
+            db = client[area_config['trackingContainer']]
+
+            db.authenticate(tracking_config['key1'], tracking_config['key2'], source='admin')
 
             area = area.lower()
 
             # hash = base64.b64encode(hashlib.md5(buffer).digest())
 
-            item = db['{}_tracking'.format(area)].find({
+            item = db['{}'.format(area)].find({
                 'selector': selector
             })
 
             return item
 
 
-        def update(self, area, selector, hash):
+        def update(self, area, selector, manifest, hash):
             assert area is not None, 'area is none; should already be validated'
 
             area_config = config.load_area(area)
 
             tracking_config = config.load_tracking(area_config['tracking'])
 
-            location = "mongodb://{}:{}@{}".format(tracking_config['key1'], tracking_config['key2'], tracking_config['location'])
+            client = MongoClient(tracking_config['location'])
 
-            client = MongoClient(location)
+            db = client[area_config['trackingContainer']]
 
-            db = client[area_config['container']]
+            db.authenticate(tracking_config['key1'], tracking_config['key2'], source='admin')
+
+            print('location:{}'.format(tracking_config['location']))
+            print('trackingContainer:{}'.format(area_config['trackingContainer']))
+            print('key1:{}'.format(tracking_config['key1']))
+            print('key2:{}'.format(tracking_config['key2']))
 
             area = area.lower()
 
@@ -65,7 +72,7 @@ try:
 
                 entity[key] = value
 
-            db['{}_tracking'.format(area)].insert_one(entity)
+            db['{}'.format(area)].insert_one(entity)
 
 except:
     pass

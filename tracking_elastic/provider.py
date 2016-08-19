@@ -43,6 +43,10 @@ class ElasticTrackingProvider():
 
 
     def prepare(self, area):
+        assert area is not None, 'area is none; should already be validated'
+
+        area_config = config.load_area(area)
+
         endpoint = self._get_endpoint(area)
 
         result = self._call('head', endpoint)
@@ -55,7 +59,7 @@ class ElasticTrackingProvider():
                     }
                 },
                 'mappings': {
-                    'tracking': {
+                    area_config['trackingContainer']: {
                         'properties': {
                             'area': {
                                 'type': 'string'
@@ -94,7 +98,7 @@ class ElasticTrackingProvider():
 
         tracking_config = config.load_tracking(area_config['tracking'])
         
-        endpoint = '{}/{}/{}'.format(tracking_config['location'], area_config['container'], 'tracking')
+        endpoint = '{}/{}/{}'.format(tracking_config['location'], area_config['name'], area_config['trackingContainer'])
 
         result = self._call('get', endpoint)
 
@@ -112,10 +116,10 @@ class ElasticTrackingProvider():
         location = location.replace('https://', 'https://{}:{}@'.format(tracking_config['key1'], tracking_config['key2']))
         location = location.replace('http://', 'http://{}:{}@'.format(tracking_config['key1'], tracking_config['key2']))
         
-        return '{}/{}'.format(location, area_config['container'])
+        return '{}/{}'.format(location, area_config['name'])
 
 
-    def update(self, area, selector, hash):
+    def update(self, area, selector, manifest, hash):
         assert area is not None, 'area is none; should already be validated'
 
         endpoint = self._get_endpoint(area)
@@ -125,7 +129,9 @@ class ElasticTrackingProvider():
 
         area = area.lower()
 
-        endpoint = urljoin(endpoint, 'tracking', selector.replace('/','_'))
+        area_config = config.load_area(area)
+
+        endpoint = urljoin(endpoint, area_config['trackingContainer'], selector.replace('/','_'))
 
         entity = {
             'area': area,
