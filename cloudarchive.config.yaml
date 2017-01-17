@@ -46,7 +46,7 @@ areas:
     container: books
     remoteBranch: text
     storage: cloudarchive01
-    tracking: elastic01
+    tracking: cloudarchive01
     fileTypes:
         - extension: txt
   
@@ -54,7 +54,7 @@ areas:
     folder: /var/archive/_AUDIOTEST
     container: mp3
     storage: cloudarchive01
-    tracking: cloudarchive01
+    tracking: mongo01
     fileTypes:
         - extension: mp3
        
@@ -63,7 +63,6 @@ areas:
     container: s3 does not use container; use remoteBranch for a remote folder
     folder: /var/archive/_ARCHIVETEST
     storage: cloudarchive02
-    tracking: mongo01
     fileTypes:
         - extension: zip
         - extension: rar

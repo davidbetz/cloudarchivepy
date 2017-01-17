@@ -1,6 +1,6 @@
 # CloudArchive for Python
 
-**Copyright (c) 2016 David Betz**
+**Copyright (C) 2016-2017 David Betz**
 
 Tool to automate asset modification, mirroring to Azure or S3, and tracking via mongo/elastic/azure-table-storage.
 
