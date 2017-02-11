@@ -2,6 +2,8 @@
 
 **Copyright (C) 2016-2017 David Betz**
 
+![logo](https://jampadcdn01.azureedge.net/common/images/db/cloudarchive.svg)
+
 Tool to automate asset modification, mirroring to Azure or S3, and tracking via mongo/elastic/azure-table-storage.
 
 In addition to basic blob transfer, this tool provides three more major features:
